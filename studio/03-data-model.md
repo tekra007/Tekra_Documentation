@@ -61,7 +61,7 @@
 `system_info_manager.get_system_info()`, який виконується **на оркестраторі**.
 Тобто ліцензія прив'язана до сервера (сценарій on-premises), а не до
 комп'ютерів співробітників. Далі це значення копіюється в `Admin.hardware_lock`
-([routers/license.py:138](../../Tekra-Orchester/src/routers/license.py#L138)).
+([routers/license.py:138](https://github.com/tekra007/Tekra-Orchester/blob/main/src/routers/license.py#L138)).
 
 `User.hardware_lock` оголошено в моделі й у схемі, але **ніде не пишеться і не
 читається** — мертве поле.
@@ -245,7 +245,7 @@ Job — **одне приготування** за цим рецептом.
 
 Коли дійдемо до запусків за розкладом, у оркестраторі вже стоїть APScheduler з
 cron-тригерами
-([utils/shedulers/scheduler.py](../../Tekra-Orchester/src/utils/shedulers/scheduler.py)).
+([utils/shedulers/scheduler.py](https://github.com/tekra007/Tekra-Orchester/blob/main/src/utils/shedulers/scheduler.py)).
 Тобто розклад — це нова таблиця тригерів і створення `Job` за часом, а не нова
 інфраструктура.
 
