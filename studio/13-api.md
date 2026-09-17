@@ -1,5 +1,27 @@
 # 13. HTTP API для Studio
 
+> ⚠️ **Оновлено під ТЗ, 2026-09-17.** Нижче — чернетка до ТЗ. Що змінилось:
+>
+> | Було | Стає | Рішення |
+> |------|------|---------|
+> | `/jobs` | `/executions` | D35 |
+> | `POST /robots/{id}/publish` | `POST /robots/{id}/versions` — «Зберегти»; без змін нова версія не створюється | D34 |
+> | — | `POST /robots/{id}/move-to-prod` `{ version_id, comment }` | §4.1.15 |
+> | `POST /robots/{id}/versions/{v}/activate` | `POST /robots/{id}/rollback` `{ version_id, reason }` | D53 |
+> | `POST /robots/{id}/archive` | + `POST /robots/{id}/restore`; `DELETE` — лише заархівованого | D55 |
+> | — | `POST /robots/{id}/availability` `{ action: enable \| disable \| suspend \| resume, reason }` | D50 |
+> | — | `POST /robot-versions/{id}/revoke` `{ reason }` | §4.1.7 |
+> | `GET /approvals/pending`, `POST /approvals/bulk-approve` | + `GET /approvals`, `POST /approvals/{id}/approve \| reject \| cancel` `{ reason }` | D38 |
+> | — | `GET, POST /test-periods`, `POST /test-periods/{id}/revoke` | D37 |
+> | — | `GET /audit-events` з фільтрами | D41–D43 |
+> | — | `GET, PATCH /policies` | D44 |
+> | — | `/processes`, `/processes/{id}/versions` | D57 |
+> | — | `/components`, `/components/{id}/versions` | D58 |
+>
+> Права на кожен ендпоінт — за [24-rbac.md](24-rbac.md). Кожна зміна стану пише
+> аудит у тій самій транзакції (D41).
+
+
 > Чернетка. Уточниться при реалізації.
 > Що йде по WebSocket — у [09-protocol.md](09-protocol.md).
 

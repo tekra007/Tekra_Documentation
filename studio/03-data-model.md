@@ -793,6 +793,41 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 
 ---
 
+## Крок 12. BPMN-процеси
+
+> 🟡 Пропозиція пакетом (D57). Як працює — [25-bpmn-components.md](25-bpmn-components.md).
+
+**`processes`** — `id`, `organization_id`, `code` (`PRC-000012`), `name`,
+`description`, `owner_user_id`, `created_by_user_id`, `updated_by_user_id`,
+`working_copy` (BPMN XML), `current_version_id`, `is_archived`.
+
+**`process_versions`** — `id`, `process_id`, `number`, `bpmn_xml` (незмінний),
+`definition_hash`, `change_description`, `created_by_user_id`.
+
+**`process_tasks`** — `id`, `process_version_id`, `bpmn_element_id`,
+`task_type` (`USER` / `ROBOT` / `MANUAL`), `robot_id` (для `ROBOT`), `lane`.
+
+Процес у MVP нічого не виконує, тому без lifecycle TEST / PROD і без погоджень.
+
+---
+
+## Крок 13. Custom components
+
+> 🟡 Пропозиція пакетом (D58). Як працює — [25-bpmn-components.md](25-bpmn-components.md).
+
+**`components`** — `id`, `organization_id`, `code` (`CMP-000007`), `name`,
+`description`, `owner_user_id`, `created_by_user_id`, `updated_by_user_id`,
+`working_copy`, `current_version_id`, `is_archived`.
+
+**`component_versions`** — `id`, `component_id`, `number`, `definition` (JSONB:
+параметри, результат, кроки, елементи — незмінний), `definition_hash`,
+`change_description`, `created_by_user_id`.
+
+Крок робота посилається на **`component_version_id`**, а не на компонент. Версію,
+на яку посилається хоч одна версія робота, видалити не можна.
+
+---
+
 ## Підсумок: як усе зв'язано
 
 > Оновлено під ТЗ 2026-09-17: `jobs` → `executions`, `published_version_id` →
@@ -852,13 +887,12 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 | 9 | Approvals — розширення скелета | ✅ (D38) |
 | 10 | Audit | ✅ (D41–D43) |
 | 11 | Політики організації | ✅ (D44–D46) |
+| 12 | BPMN-процеси | 🟡 пропозиція пакетом (D57) |
+| 13 | Custom components | 🟡 пропозиція пакетом (D58) |
 
-### Ще не спроєктовано — нове з ТЗ
+### Сутності ТЗ
 
-| Сутність | ТЗ |
-|----------|----|
-| BPMN-процеси (D33) | §3.2 |
-| Custom components (D33) | §3.3 |
+Усі сутності ТЗ описано — кроки 1–13.
 
 > Це чернетка для узгодження, а не готова схема. Міграції створює людина
 > (див. `AGENTS.md`, розділ 7).

@@ -1,5 +1,19 @@
 # 9. Протокол: HTTP чи WebSocket
 
+> ⚠️ **Оновлено під ТЗ, 2026-09-17.** Нижче — чернетка до ТЗ. Що змінилось:
+>
+> | Було | Стає | Рішення |
+> |------|------|---------|
+> | `JOB_ASSIGN` / `JOB_ACCEPTED` | `EXECUTION_ASSIGN` / `EXECUTION_ACCEPTED`; фіксують `dispatched_at` і `delivered_at` | D35 |
+> | `JOB_PROGRESS`, `JOB_LOG`, `JOB_FINISHED` | `EXECUTION_PROGRESS`, `EXECUTION_LOG`, `EXECUTION_FINISHED`; кожна подія оновлює `last_event_at` | D51 |
+> | `JOB_STOP` | `EXECUTION_CANCEL` — акуратно; `EXECUTION_TERMINATE` — обірвати негайно | D51 |
+> | — | `EXECUTION_PAUSE` / `EXECUTION_RESUME` | §4.1.18 |
+> | — | у `EXECUTION_ASSIGN` — контекст `lifecycle: TEST \| PROD` | §4.8 |
+> | — | після відновлення звʼязку агент досилає накопичені логи й результат | D51 |
+>
+> Логи пачками, `ERROR` одразу (D26) і підписка на запуск (D27) лишаються.
+
+
 > Чернетка. Перелік повідомлень уточниться при реалізації.
 
 ## Правило, за яким обираємо
