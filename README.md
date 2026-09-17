@@ -30,7 +30,7 @@
 
 | Розділ | Про що |
 |--------|--------|
-| [`studio/`](studio/README.md) | **Tekra Studio** — веб-редактор роботів, Inspector, виконання. Рішення D1–D30 |
+| [`studio/`](studio/README.md) | **Tekra Studio** — веб-редактор роботів, Inspector, виконання. Канон — [ТЗ](studio/spec/tz-lifecycle.md); рішення D1–D33 |
 
 ## Правила для цього репозиторію
 
