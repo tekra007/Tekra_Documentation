@@ -17,6 +17,7 @@
 > | — | `GET, PATCH /policies` | D44 |
 > | — | `/processes`, `/processes/{id}/versions` | D57 |
 > | — | `/components`, `/components/{id}/versions` | D58 |
+> | `GET, POST /schedules`, `PATCH, DELETE /schedules/{id}` | лише `GET /schedules`: розклад змінюється через версію робота (тригери в `definition`) | D58 |
 >
 > Права на кожен ендпоінт — за [24-rbac.md](24-rbac.md). Кожна зміна стану пише
 > аудит у тій самій транзакції (D41).

@@ -167,7 +167,7 @@
 | `change_description` | str, nullable | опис змін | §4.1.5 |
 | `release_state` | enum | DRAFT / TESTING / RELEASED / SUPERSEDED / REJECTED. Переходи — [18-version-release.md](18-version-release.md) (D39) | §4.1.5 |
 | `authorization` | enum | NOT_REQUIRED / PENDING_APPROVAL / APPROVED / REJECTED / REVOKED / EXPIRED | §4.1.7 |
-| `definition` | JSONB | сам сценарій (D4) | §4.1.5 |
+| `definition` | JSONB | сам сценарій (D4): кроки, елементи, параметри, посилання на версії компонентів і на облікові дані, **тригери** (D58) | §4.1.5 |
 | `definition_hash` | str | контроль цілісності + «чи змінилось» (D34) | §4.1.5 |
 | `min_assistant_version` | str, nullable | мінімальна версія Assistant, що вміє всі активності версії (D2) | |
 | `created_by_user_id` | FK → users, nullable | хто створив версію | §4.1.5 |
@@ -605,6 +605,18 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 
 ## Крок 7. Розклад запусків
 
+> ✅ **Переглянуто під ТЗ, 2026-09-17 (D58).** ТЗ §4.1.4 відносить **triggers** до
+> змін, що створюють нову версію. Тому розклад задається **в `definition`
+> версії** — `triggers: [{ cron, timezone, machine_id, input }]` — і потрапляє в
+> PROD разом із версією, через погодження за політикою.
+>
+> Таблиця `schedules` лишається, але стає **похідною**: оркестратор заповнює її
+> з тригерів Active Production Version при активації, rollback і архівуванні
+> (D55). Напряму її ніхто не редагує. За розкладом запускається лише PROD; у TEST
+> тригери не спрацьовують — тестують вручну.
+>
+> Текст нижче — попереднє рішення.
+
 Додано після D28.
 
 **`schedules`**
@@ -795,7 +807,7 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 
 ## Крок 12. BPMN-процеси
 
-> 🟡 Пропозиція пакетом (D57). Як працює — [25-bpmn-components.md](25-bpmn-components.md).
+> ✅ Прийнято (D57). Як працює — [25-bpmn-components.md](25-bpmn-components.md).
 
 **`processes`** — `id`, `organization_id`, `code` (`PRC-000012`), `name`,
 `description`, `owner_user_id`, `created_by_user_id`, `updated_by_user_id`,
@@ -813,7 +825,7 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 
 ## Крок 13. Custom components
 
-> 🟡 Пропозиція пакетом (D58). Як працює — [25-bpmn-components.md](25-bpmn-components.md).
+> ✅ Прийнято (D58). Як працює — [25-bpmn-components.md](25-bpmn-components.md).
 
 **`components`** — `id`, `organization_id`, `code` (`CMP-000007`), `name`,
 `description`, `owner_user_id`, `created_by_user_id`, `updated_by_user_id`,
@@ -880,15 +892,15 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 | 2 | Machine | ✅ |
 | 3 | Execution + логи | ✅ переглянуто під ТЗ |
 | 4 | Доля старої моделі | ✅ |
-| 5 | Доступ юзера до роботів | ⚠️ розширюється під Visibility / Permissions ТЗ (D25) |
+| 5 | Доступ юзера до роботів | ✅ за D56 |
 | 6 | Облікові дані роботів | ✅ |
-| 7 | Розклад запусків | ✅ накладання — за D49 |
+| 7 | Розклад запусків | ✅ тригери у версії (D58), накладання — за D49 |
 | 8 | Test Period | ✅ (D37) |
 | 9 | Approvals — розширення скелета | ✅ (D38) |
 | 10 | Audit | ✅ (D41–D43) |
 | 11 | Політики організації | ✅ (D44–D46) |
-| 12 | BPMN-процеси | 🟡 пропозиція пакетом (D57) |
-| 13 | Custom components | 🟡 пропозиція пакетом (D58) |
+| 12 | BPMN-процеси | ✅ (D57) |
+| 13 | Custom components | ✅ (D58) |
 
 ### Сутності ТЗ
 
