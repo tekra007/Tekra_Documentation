@@ -1,7 +1,7 @@
 # 16. Трасування: ТЗ ↔ наші рішення
 
 > ТЗ [`spec/tz-lifecycle.md`](spec/tz-lifecycle.md) — **затверджений документ і
-> канон** (D32). Цей файл показує, як решта розділу `studio/` лягає на ТЗ: що
+> канон** (D32). Чинна редакція — **10/1/2026**; що в ній змінилось — розділ 7. Цей файл показує, як решта розділу `studio/` лягає на ТЗ: що
 > збігається, що переглядається, що доведеться спроєктувати заново і як ми
 > відповідаємо на 28 питань, які ТЗ свідомо лишив відкритими.
 >
@@ -19,7 +19,9 @@
 | **Availability** | чи дозволено виконання **зараз** | частково `is_archived` | ENABLED / DISABLED / SUSPENDED |
 | **Health** | технічний стан | — | HEALTHY / WARNING / ERROR / OFFLINE |
 | **Release State** | стан версії | — | DRAFT / TESTING / RELEASED / SUPERSEDED / REJECTED |
-| **Active Production Version** | яка версія зараз у PROD | `published_version_id` | `active_production_version_id` |
+| **Robot ID** | незмінний ідентифікатор робота | UUID + `code` `RBT-000184` | `robots.number` — `184` у межах організації, показ `RBT-184`; UUID лишається технічним ключем (D62) |
+| **Version Number** | номер версії в межах робота; разом із Robot ID дає `184.2` | `robot_versions.id` UUID | ключ версії — пара `(robot_id, number)` (D61) |
+| **Active Production Version** | яка версія зараз у PROD | `published_version_id` | `active_production_version_number` (D61) |
 | **Test Period** | дозвіл тестувати протягом часу | — | нова сутність |
 | **Process** (BPMN) | бізнес-процес із Task-ів людини, робота, ролі | прибрали в D29 | повертається як Level 1 |
 | **Component** | цеглинка робота; буває складена користувачем | Activity | узгодити в D6 під §3.2–3.3 |
@@ -29,16 +31,16 @@
 | ТЗ | Наше рішення |
 |----|--------------|
 | Robot + незмінні Version (§4.1.3) | D1, крок 1 моделі даних |
-| Active Production Version — вказівник, а не статус (§4.1.10) | `published_version_id` |
-| Rollback = зміна вказівника без нової версії (§4.1.11) | `POST /robots/{id}/versions/{v}/activate` |
-| Execution — окрема сутність, посилається на Robot + Version (§4.1.16–17) | `jobs.robot_version_id` |
+| Active Production Version — вказівник, а не статус (§4.1.10) | `robots.active_production_version_number` (D61) |
+| Rollback = зміна вказівника без нової версії (§4.1.11) | `POST /robots/{id}/rollback` (D53) |
+| Execution — окрема сутність, посилається на Robot ID.Version Number (§4.1.16–17) | `executions(robot_id, version_number)` (D61) |
 | Assistant не обходить Orchestrator (§2.3, §4.8) | D5 — усе через оркестратор |
 | Один Assistant для TEST і PROD (§4.8) | один десктоп-застосунок |
 | Regular User / Developer / Admin (§4.4) | D23 — `USER` / `DEVELOPER` / `ADMIN` |
 | Code — поза scope (§3.2) | D1 — JSON-DSL, не код |
 | Scheduling в оркестраторі (§2.2) | D28 |
 | Admin Panel в оркестраторі (§4.7.4) | Face — адмін-консоль оркестратора |
-| Оркестратор фізично одна інсталяція (§4.7) | D31 — не розділяти |
+| Оркестратор фізично одна інсталяція (§4.7) | так; Studio — окремий сервіс поруч (D31), як і в ТЗ §2 |
 
 ## 3. Що переглядається під ТЗ
 
@@ -74,8 +76,9 @@
 | Pre-run checks, стан BLOCKED | §4.7.2 | середній | — |
 | Пріоритет і черги | §4.7.3 | середній | APScheduler |
 | Availability, Health | §4.1.8–9 | малий | — |
-| Release State, Source Version, Definition Hash, Released By/At | §4.1.5 | малий | — |
-| Owner, Updated By, Robot ID виду `RBT-000184` | §4.1, §4.1.1 | малий | — |
+| Release State, Definition Hash, Released By/At | §4.1.5 | малий | — |
+| Owner, Updated By, Robot ID — номер `184` в організації (D62) | §4.1, §4.1.1 | малий | — |
+| Версія — повний самодостатній знімок, ключ `(robot_id, number)` | §4.1.3–4.1.5, §11 | малий | D61, D63, D64 |
 | TEST → PROD interactions policy | §4.6 | середній | — |
 | Admin Panel: налаштування політик | §4.7.4 | середній | Face — адмін-консоль |
 | **BPMN (Level 1)** | §2.1, §3.2 | великий, мало деталей | — (D33) |
@@ -87,7 +90,7 @@
 
 | № | Питання ТЗ | Стан | Що маємо |
 |---|------------|------|----------|
-| 1 | Які зміни є metadata-only | ✅ | D34 + D58: склад `definition`, зокрема тригери — [25](25-bpmn-components.md) |
+| 1 | Які зміни є metadata-only | ✅ | D34 + D58 + D64: склад `definition`, зокрема тригери й вміст компонентів — [25](25-bpmn-components.md) |
 | 2 | Чи можуть одночасно існувати кілька APPROVED PROD Versions | ✅ | D53: так, активна — одна |
 | 3 | Чи може одночасно виконуватися кілька Versions одного Robot’а | ✅ | D47: так, на різних машинах; для PROD — обмеження D49 |
 | 4 | Approval flow для rollback | ✅ | D53: без погодження, причина + сповіщення адмінам |
@@ -95,7 +98,7 @@
 | 6 | Чи потребує rollback окремого approval | ✅ | D53: ні, якщо версія досі погоджена |
 | 7 | Чи можна відновлювати ARCHIVED Robot’а | ✅ | D55: так, у TEST; у PROD — знову через погодження |
 | 8 | Семантика READ / CALL / WRITE / TRIGGER | ⬜ | відкладено за D46 — до першого способу викликати іншого робота |
-| 9 | Чи може TEST викликати PROD виключно через Orchestrator API | 💡 | §4.6: TEST Robot не повинен обходити Orchestrator; наш D5 — усе через оркестратор. Деталі — за D46, разом із викликом робота |
+| 9 | Чи може TEST викликати PROD виключно через Orchestrator API | ✅ | D71: так, лише через оркестратор (§4.6, D5); виклик робота — звичайний Execution з перевіркою №13; у MVP — DENY ALL (D46) |
 | 10 | Умови автоматичного SUSPENDED | ✅ | D52: у MVP автоматично не призупиняємо — Health = ERROR і сповіщення |
 | 11 | RUNNING Execution після DISABLED | ✅ | D51: доробляє (ALLOW_TO_FINISH) |
 | 12 | RUNNING Execution після SUSPENDED | ✅ | D51: обривається (TERMINATE) |
@@ -103,20 +106,20 @@
 | 14 | Фінальна RBAC-матриця | ✅ | D56 — [24](24-rbac.md) |
 | 15 | Scheduling algorithm | ✅ | D28 — cron; D47 — черга на машину, PROD першим, FIFO всередині |
 | 16 | Concurrency model | ✅ | D49: машина — 1 запуск, PROD-робот — 1 активний на організацію |
-| 17 | Starvation prevention | 🟡 | свідомо відкладено (D47): ризик низький, є тайм-аут черги |
-| 18 | Resource locking | ⬜ | частково закриває D49 |
-| 19 | Resource reservation | ⬜ | — |
-| 20 | Deployment нової PROD Version без downtime | 🟡 | перемикання вказівника + запуск посилається на конкретну версію: запущені дотягують стару, нові беруть нову |
+| 17 | Starvation prevention | ✅ | D73: звільнений обліковий запис — тому, хто чекає найдовше; без старіння пріоритету; причина очікування видна |
+| 18 | Resource locking | ✅ | D69: облікові дані «лише одна сесія» блокуються автоматично; файли й ліцензії — після MVP |
+| 19 | Resource reservation | ✅ | D70: призначення машини PROD / TEST / ANY; резервування за часом — після MVP |
+| 20 | Deployment нової PROD Version без downtime | ✅ | D72: перемикання вказівника; черга перестворюється на новій версії; попередження про застарілих агентів |
 | 21 | UX lifecycle/version statuses у Studio | ✅ | D59 — [26](26-screens-tz.md) |
 | 22 | Working Version при одночасній Active Production Version | ✅ | D34: робоча копія не є версією й на Active Production Version не впливає |
 | 23 | Модель Version Release State | ✅ | D39 — [18-version-release.md](18-version-release.md) |
 | 24 | Чи потрібен DEPRECATED / RETIRED lifecycle | ✅ | D55: ні — DISABLED і ARCHIVED покривають |
 | 25 | TEST Version — окремий authorization object чи тільки Test Period | ✅ | D37: тільки Test Period; authorization версії — лише для PROD |
 | 26 | Чи охоплює Test Period нові Versions після approval | ✅ | D37: так — період видається на робота й діє для всіх його версій, зокрема нових |
-| 27 | Що відбувається при створенні нової Version під час активного PROD | 💡 | §4.1.10: створення v28 не замінює v27 автоматично |
-| 28 | Як Orchestrator визначає Definition для Assistant | ✅ | D4: сценарій у JSONB версії; приходить агенту в `JOB_ASSIGN` (09-protocol) |
+| 27 | Що відбувається при створенні нової Version під час активного PROD | ✅ | D71: нова версія — DRAFT, активна не змінюється, тестується в TEST, тригери не діють до активації |
+| 28 | Як Orchestrator визначає Definition для Assistant | ✅ | D4 + D64: повний `definition` версії `(robot_id, version_number)` разом із вмістом компонентів; приходить агенту в `EXECUTION_ASSIGN` (09-protocol) |
 
-**Підсумок:** ✅ 21 · 💡 2 · 🟡 2 · ⬜ 3.
+**Підсумок:** ✅ 27 · 💡 0 · 🟡 0 · ⬜ 1.
 
 ## 6. Порядок перебудови документації
 
@@ -128,4 +131,55 @@
 | 4 | Модель даних `03-data-model` під §7: `robots`, `robot_versions`, `executions`, `test_periods`, `audit_events`, розширений `approvals` | ✅ |
 | 5 | Нові розділи: Lifecycle і TEST/PROD · Approvals і Test Period · Audit · Pre-run checks і черги · BPMN · Custom components | ✅ [17](17-authorization.md)–[26](26-screens-tz.md) |
 | 6 | Перегляд D11, D25, D28, D29, статусів запуску | ✅ |
-| 7 | API й протокол (`13-api`, `09-protocol`) під нову модель | 🟡 додано мапу змін угорі обох документів; повне переписування — за потреби |
+| 7 | API й протокол (`13-api`, `09-protocol`) під нову модель | ✅ переписано 2026-10-05 під ТЗ і D31 — два сервіси, брокер між ними |
+| 8 | Звірка з редакцією ТЗ 10/1/2026 — розділ 7 | ✅ 2026-10-05, D61–D65 |
+
+## 7. Редакція 10/1/2026: що змінилось
+
+Попередня редакція (9/11/2026) —
+[`spec/tz-lifecycle-2026-09-11.md`](spec/tz-lifecycle-2026-09-11.md). 28
+відкритих питань (§10), 17 перевірок перед запуском, ролі, дозволи й політики
+**не змінились**.
+
+### Що змінилось і як ми відповіли
+
+| Зміна в ТЗ | Де | У нас |
+|------------|----|-------|
+| Robot ID — число `184` (у прикладах також `RBT-184`) | §4.1.1, §5 | ✅ D62: Robot ID = `robots.number`, свій в організації, без повторного використання; показ `RBT-184`; ключ і API — UUID |
+| Версію показують як `Robot ID.Version Number`: `184.2`. «Не окремий технічний Version ID» | §4.1.1, §11 | ✅ D61: ключ версії — пара `(robot_id, number)`, власного id немає |
+| З полів версії прибрано `Version ID` і `Source Version ID` | §4.1.5, §7 | ✅ D61, D63: `source_version_id` прибрано; база робочої копії — `robots.working_copy_base_number` |
+| Версія — повний незалежний знімок; не залежить від попередньої; нова версія = копія поточної + зміни + наступний номер | §4.1.3, §4.1.4 | ✅ D64: вміст компонентів копіюється у версію робота; D34 вже створював повний `definition` |
+| Active Production Version — **номер** версії | §4.1.2, §4.1.10, §7 | ✅ `robots.active_production_version_number` |
+| Move to PROD, Execution, Audit — Version Number замість Version ID | §4.1.15, §4.1.17, §4.7.5 | ✅ API `{ version_number }`, `executions` і `audit_events` — `(robot_id, version_number)` |
+| Rollback — до «раніше створеної» версії; не змінює Definition жодної версії | §4.1.11 | ✅ D53 не змінюється: «раніше створена» + «без approval у PROD не можна» (#20, #21) = лише на вже погоджену версію |
+| Розробник під час Test Period: тестує окремі версії й окремі частини версії, аналізує результати | §4.1.13 | ✅ окремі версії — запуск будь-якої версії в TEST; частини версії — D66, [27](27-partial-runs.md) |
+| 43 критерії приймання замість 40 | §9 | ✅ нові критерії — нижче |
+
+### Розбіжність усередині ТЗ — питання до автора
+
+У §7 (Data model) в Execution досі стоїть **`VersionID`**, а §4.1.17 і критерій
+#35 кажуть **`Robot ID.Version Number`**. Ідемо за §4.1.17 і #35 (D61) — вони
+конкретніші й узгоджені з рештою редакції. Варто попросити автора ТЗ виправити
+§7.
+
+### Нові критерії приймання
+
+| № | Критерій | Як виконується |
+|---|----------|----------------|
+| 7 | Version має Version Number у межах конкретного Robot’а | `robot_versions.number`, ключ `(robot_id, number)` (D61) |
+| 8 | Кожна Version містить повний snapshot Definition / Configuration | `definition` — повний сценарій разом із вмістом компонентів (D64) |
+| 9 | Version не залежить від попередньої Version | немає `source_version_id` (D63); вміст компонентів скопійовано (D64) |
+| 12 | Нова execution-affecting зміна створює нову Version — повний snapshot | D34 + D64 |
+| 13 | Active Production Version визначає версію за Robot ID.Version Number | `robots.active_production_version_number`, ключ `(id, number)` (D61) |
+| 35 | Execution посилається на Robot ID.Version Number | `executions(robot_id, version_number)` (D61) |
+| 43 | Rollback не змінює Definition жодної існуючої Version | rollback лише переставляє вказівник (D53); `definition` незмінний (D34) |
+
+**Перенумерація.** Старий #7 («власний Version ID») замінено новим #7; старі #8–9 → #10–11, старі #10–40 →
+#12–42. Посилання на номери критеріїв у журналі й моделі даних оновлено.
+
+### Не закрито
+
+- ~~Тестування окремих частин версії~~ — ✅ закрито D66
+  ([27](27-partial-runs.md)): точки зупинки й «Запустити виділене»; частковий
+  запуск — звичайний Execution версії з полем `scope`.
+- **§7 ТЗ: `VersionID` в Execution** — чекаємо виправлення від автора ТЗ.

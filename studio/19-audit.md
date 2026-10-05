@@ -6,7 +6,7 @@
 
 - Orchestrator веде Audit **усіх критичних дій** (§4.7.5): по роботах, версіях,
   погодженнях, тестових періодах, доступності, запусках і політиках;
-- кожна подія має: **Who, When, Action, Robot ID, Version ID, Previous State,
+- кожна подія має: **Who, When, Action, Robot ID, Version Number, Previous State,
   New State, Reason, Execution ID, Assistant, Host, Lifecycle**;
 - заблокований запуск — причина обовʼязково в аудиті (§4.7.2);
 - адмін переглядає аудит із фільтрами й пошуком (§4.7.4);
@@ -93,17 +93,17 @@
 (§4.7.5). Тобто одне натискання APPROVE — це кілька подій аудиту. Варіант B
 лягає на це буквально.
 
-Приклад: адмін погодив v28 робота `RBT-000184`, у PROD до цього працювала v27.
+Приклад: адмін погодив 184.28 робота `RBT-184`, у PROD до цього працювала 184.27.
 
 | # | `action` | Обʼєкт | Previous → New |
 |---|----------|--------|----------------|
-| 1 | `AUTHORIZATION_APPROVED` | v28 | PENDING_APPROVAL → APPROVED |
-| 2 | `VERSION_RELEASED` | v28 | TESTING → RELEASED |
-| 3 | `VERSION_PRODUCTION_ACTIVATED` | робот | v27 → v28 |
-| 4 | `VERSION_SUPERSEDED` | v27 | RELEASED → SUPERSEDED |
+| 1 | `AUTHORIZATION_APPROVED` | 184.28 | PENDING_APPROVAL → APPROVED |
+| 2 | `VERSION_RELEASED` | 184.28 | TESTING → RELEASED |
+| 3 | `VERSION_PRODUCTION_ACTIVATED` | робот | 184.27 → 184.28 |
+| 4 | `VERSION_SUPERSEDED` | 184.27 | RELEASED → SUPERSEDED |
 
 Усі чотири рядки мають один `correlation_id` — у Studio й Admin Panel їх можна
-показати однією дією, а фільтром «що відбувалось з v27» знайти рядок 4.
+показати однією дією, а фільтром «що відбувалось з 184.27» знайти рядок 4.
 
 ---
 

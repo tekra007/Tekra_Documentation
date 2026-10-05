@@ -2,19 +2,15 @@
 
 ## Технічне завдання: життєвий цикл, тестування, Production та управління Robot’ом
 
-> **Автор:** Oleksii Kulinskyi, TEKRA · **Дата:** 10/1/2026 (редакція 2)
+> **Автор:** Oleksii Kulinskyi, TEKRA · **Дата:** 9/11/2026
 >
-> **Статус:** затверджений документ, **канон** для проєктування Studio.
-> При розбіжності з рештою документації розділу `studio/` — пріоритет має це ТЗ.
+> **Статус:** ⚠️ **попередня редакція — замінена** редакцією 10/1/2026:
+> [`tz-lifecycle.md`](tz-lifecycle.md). Зберігається для історії.
 >
-> Оригінал: [`tz-lifecycle.pdf`](tz-lifecycle.pdf)
+> Оригінал: [`tz-lifecycle-2026-09-11.pdf`](tz-lifecycle-2026-09-11.pdf)
 > (`TEKRA Studio. Життєвий цикл робота.docx.pdf`). Цей файл — дослівне
 > перенесення тексту для пошуку, посилань і diff. Схеми-зображення з оригіналу
 > перемальовані текстом. У спірному випадку звіряти з PDF.
->
-> Попередня редакція (9/11/2026):
-> [`tz-lifecycle-2026-09-11.md`](tz-lifecycle-2026-09-11.md). Що змінилось —
-> [16-tz-traceability.md](../16-tz-traceability.md#7-редакція-1012026-що-змінилось).
 
 ---
 
@@ -212,12 +208,14 @@ Robot має стабільну identity та власну історію Versio
 | **Authorization** | Поточний стан права на виконання |
 | **Availability** | ENABLED / DISABLED / SUSPENDED |
 | **Health** | HEALTHY / WARNING / ERROR / OFFLINE |
-| **Active Production Version** | Посилання на конкретну активну PROD Version |
+| **Active Production Version ID** | Посилання на конкретну активну PROD Version |
 | **Version[-s]** | Набір усіх Version цього Robot’а |
 
 #### 4.1.1. Robot ID
 
-Robot ID генерується один раз під час створення Robot’а та залишається незмінним протягом усього життєвого циклу Robot’а.
+Robot ID генерується один раз під час створення Robot’а.
+
+Наприклад: *RBT-000184*
 
 Robot ID:
 
@@ -226,92 +224,15 @@ Robot ID:
 - використовується для однозначної ідентифікації Robot’а;
 - використовується в Audit та Execution.
 
-Кожна Version має власний порядковий номер у межах Robot’а.
-
-Для зручної ідентифікації Version у користувацькому інтерфейсі використовується складений ідентифікатор у форматі:
-
-```
-Robot ID.Version Number
-```
-
 Наприклад:
 
-```
-Robot ID = 184
+Robot ID: *RBT-000184*
 
-Version 1 → 184.1
-Version 2 → 184.2
-Version 3 → 184.3
-```
+Name: *Обробка рахунків*
 
-Частина 184 визначає ID Robot’а, а частина після крапки визначає конкретну Version цього Robot’а.
+Version: *v27*
 
-Зміна Version не створює нового Robot’а та не змінює Robot ID.
-
-Що мається на увазі: фізично в сховищі буде дві повні версії робота, але це не два різні Robot'и з точки зору розробника. Тобто:
-
-```
-Robot ID = 184
-184.1
-└── повний стан робота:
-   ├── кубик 1
-   ├── кубик 2
-   ├── ...
-   └── кубик 10
-184.2
-└── повний стан робота:
-   ├── кубик 1
-   ├── кубик 2
-   ├── ...
-   └── кубик 10
-```
-
-Тому треба розрізняти два поняття
-
-**Логічно:** це один Robot 184, у якого є версії 184.1, 184.2.
-
-**Фізично в сховищі:** зберігаються дві незалежні повні сутності/снапшоти:
-
-```
-Robot 184
-   Version 1 → повна копія
-   Version 2 → повна копія
-```
-
-Саме це мається на увазі під «Зміна Version не створює нового Robot’а». Тобто, не створюється новий Robot ID = 185.
-
-Але створюється новий запис/об'єкт Version 2, який містить повну копію Robot 184 зі змінами.
-
-Якщо зовсім просто: Розробник у Studio бачить:
-
-```
-Робот 184
-├── 184.1
-└── 184.2
-```
-
-А не:
-
-```
-Робот 184
-Робот 185
-```
-
-При цьому 184.1 і 184.2 - повністю самодостатні. Якщо в 184.2 змінився тільки 4-й кубик, ми все одно зберігаємо всі 10 кубиків.
-
-Це дасть простий rollback:
-
-```
-PROD зараз → 184.2
-
-rollback
-
-PROD → 184.1
-```
-
-Нічого не копіюємо назад і не відновлюємо окремі зміни - просто перемикаємо активну версію.
-
-Отже: на диску/в сховищі фактично буде 2 повні роботи - але в системній моделі це 1 Robot із 2 Version.
+Зміна Name не створює нового Robot’а.
 
 #### 4.1.2. Metadata Robot’а
 
@@ -336,7 +257,7 @@ Authorization
 Availability
 Health
 
-Active Production Version*
+Active Production Version ID
 ```
 
 **Важливо**
@@ -351,57 +272,27 @@ Active Production Version*
 
 Це різні події та різні аудиторські дані.
 
-\* - Active Production Version визначає номер Version, яка на поточний момент використовується як Production Version для цього Robot’а. Наприклад:
-
-```
-Robot ID: 184
-Active Production Version: 2
-```
-
-У користувацькому інтерфейсі (Розробника в Студії та Адміністратора в Оркестраторі) це може відображатися як: *Robot 184.2*
-
 #### 4.1.3. Version
 
-Version - це повністю збережений та незмінний snapshot конкретного стану Robot’а. Один Robot може мати необмежену кількість Versions. Кожна Version містить **повну** Definition / Configuration Robot’а, а не тільки зміни відносно попередньої Version.
-
-Наприклад:
+Version - окрема сутність, що представляє **конкретну незмінну реалізацію Robot’а**. Robot може мати необмежену кількість Versions:
 
 ```
-Robot ID = 184
+Robot RBT-000184
 │
-├── Version 1 → 184.1
-│     └── повний snapshot Robot’а
+├── Version v1
+├── Version v2
+├── Version v3
 │
-├── Version 2 → 184.2
-│     └── повний snapshot Robot’а
+├── ...
 │
-├── Version 3 → 184.3
-│     └── повний snapshot Robot’а
-│
-└── ...
+└── Version vn
 ```
 
-Version 2 не залежить від Version 1 для свого виконання. Вона містить повну реалізацію Robot’а на момент створення Version. Після створення Version її Definition / Configuration не змінюється.
-
-Якщо необхідно змінити Robot’а таким чином, що зміна впливає на його виконання, створюється нова Version з новим Version Number та повною копією поточного стану Robot’а з урахуванням внесених змін.
-
-Robot ID при створенні нової Version не змінюється.
+Version після створення є незмінною. Якщо потрібно змінити Robot’а - створюється нова Version.
 
 #### 4.1.4. Versioning rules
 
-Нова Version створюється при збереженні змін, які можуть впливати на виконання Robot’а.
-
-При створенні нової Version система:
-
-1. бере повний стан поточної Version;
-2. створює його повну копію;
-3. застосовує внесені зміни;
-4. присвоює новій Version наступний Version Number;
-5. зберігає нову Version як незалежний незмінний snapshot.
-
-Нова Version не повинна зберігати лише перелік змінених елементів або залежати від попередньої Version для відтворення власної Definition / Configuration.
-
-До execution-affecting змін належать:
+Нова Version створюється при збереженні змін, які можуть впливати на виконання Robot’а. До таких змін належать:
 
 - логіка;
 - code;
@@ -426,30 +317,19 @@ Robot ID при створенні нової Version не змінюється.
 
 | Поле | Опис |
 |---|---|
+| **Version ID** | Унікальний ID Version |
 | **Robot ID** | Robot, до якого належить Version |
 | **Version Number** | v1, v2, … vn |
 | **Created By** | Хто створив Version |
 | **Created At** | Дата та час створення |
-| **Change Description\*** | Опис змін |
+| **Source Version ID** | Version, на базі якої створена поточна |
+| **Change Description** | Опис змін |
 | **Release State** | Стан release |
 | **Authorization** | Authorization саме цієї Version |
-| **Definition / Configuration** | Повний snapshot реалізації Robot’а |
-| **Definition Hash** | Контроль цілісності повного snapshot’а |
+| **Definition / Configuration** | Повний snapshot реалізації |
+| **Definition Hash** | Контроль цілісності |
 | **Released By** | Хто виконав release |
 | **Released At** | Дата та час release |
-
-\* - приклад Change Description:
-
-```
-Robot 184.1
-Change Description: —
-
-Robot 184.2
-Change Description: змінено блок 4 - додано перевірку наявності документа
-
-Robot 184.3
-Change Description: додано обробку помилки API
-```
 
 **Release State**
 
@@ -536,18 +416,17 @@ Authorization - окремий вимір стану Robot’а/Version.
 Production authorization прив'язується до **конкретної Version**. Наприклад:
 
 ```
-RBT-184.27*
+RBT-000184
+Version: v27
 Lifecycle: PROD
 Authorization: APPROVED
 ```
 
-\* - Robot ID.Version Number
-
 Якщо створена v28:
 
-184.27 → APPROVED
+v27 → APPROVED
 
-184.28 → NOT APPROVED
+v28 → NOT APPROVED
 
 Approval v27 не переноситься автоматично на v28.
 
@@ -614,76 +493,61 @@ Health: ERROR
 
 #### 4.1.10. Active Production Version
 
-Для кожного Robot’а повинна бути однозначно визначена Active Production Version.
+Для кожного Robot’а повинна бути однозначно визначена:
 
-Active Production Version - це конкретна Version цього Robot’а, яка в поточний момент використовується для Production execution.
+```
+Active Production Version
+```
 
-Active Production Version **не є окремим статусом**.
+Це **не окремий статус**. Це pointer:
+
+```
+Robot
+  │
+  └── Active Production Version ID
+               ↓
+         Version v27
+```
 
 Наприклад:
 
 ```
-Robot ID: 184
-
-Version 1 → 184.1
-Version 2 → 184.2
-Version 3 → 184.3
-
-Active Production Version = 2
+Robot ID: RBT-000184
+Active Production Version ID: VER-000821
+Version Number: v27
 ```
 
-У користувацькому інтерфейсі:
+При цьому Robot може одночасно мати:
 
 ```
-Active PROD = 184.2
+v27 → Active PROD
+v28 → TEST / development
 ```
 
-Створення нової Version не повинно автоматично змінювати Active Production Version.
-
-Наприклад:
-
-```
-184.2 → Active PROD
-184.3 → TEST / development
-```
-
-При цьому обидві Version зберігаються повністю та незалежно одна від одної.
+Створення v28 не повинно автоматично замінювати v27.
 
 #### 4.1.11. Rollback
 
-Rollback - це повернення Active Production Version до раніше створеної Version Robot’а.
-
-Оскільки кожна Version є повним незмінним snapshot’ом Robot’а, rollback не потребує відновлення окремих змінених блоків або застосування зворотних змін.
+Rollback - повернення Active Production Version до попередньої стабільної Version.
 
 Наприклад:
 
 ```
-Robot 184
-
-184.1
-184.2 ← попередня стабільна
-184.3 ← Active PROD
-```
+До rollback:
+Active PROD → v27
 
 Після rollback:
-
-```
-Robot 184
-
-184.1
-184.2 ← Active PROD
-184.3
+Active PROD → v26
 ```
 
 Rollback:
 
-- не змінює жодну існуючу Version;
 - не створює нову Version;
-- не змінює Definition існуючих Version;
-- змінює Active Production Version;
+- не змінює Definition v26;
+- змінює Active Production Version pointer;
 - повинен бути зафіксований в Audit.
 
-Таким чином, rollback фактично є вибором раніше збереженого повного snapshot’а Robot’а для Production execution.
+Точний механізм approval rollback залишається окремим design decision.
 
 #### 4.1.12. Test Period
 
@@ -721,9 +585,9 @@ Robot у TEST повинен дозволяти Developer’у виконува�
 ```
 TEST Period = 1 day
 
-184.10
-184.11
-184.12
+Version v10
+Version v11
+Version v12
 
 Execution #1
 Execution #2
@@ -733,11 +597,11 @@ Execution #800
 
 Новий approval перед кожним execution **не потрібен**. Під час активного Test Period Developer може:
 
-- створювати нову Version на основі поточного стану Robot’а;
-- тестувати окремі Version;
-- тестувати окремі частини Version;
-- виконувати багаторазові executions;
-- аналізувати результати executions.
+- змінювати Robot’а;
+- створювати нові Versions;
+- тестувати окремі частини;
+- тестувати повного Robot’а;
+- виконувати багато запусків.
 
 #### 4.1.14. TEST Period expiry
 
@@ -792,7 +656,7 @@ Orchestrator
 3. Developer натискає Move to PROD
 4. Studio передає до Orchestrator:
    - 4.1. Robot ID
-   - 4.2. Version Number
+   - 4.2. Version ID
    - 4.3. користувача
    - 4.4. час
    - 4.5. параметри request
@@ -815,15 +679,15 @@ RUNNING
 
 як характеристику самого Robot’а.
 
-`RUNNING` - статус конкретного Execution’а.
+`RUNNING` - статус конкретного Execution.
 
 Один Robot може мати:
 
 ```
-Execution #1001 → Robot 184.26 → RUNNING
-Execution #1002 → Robot 184.26 → COMPLETED
-Execution #1003 → Robot 184.27 → QUEUED
-Execution #1004 → Robot 184.25 → FAILED
+Execution #1001 → v26 → RUNNING
+Execution #1002 → v26 → COMPLETED
+Execution #1003 → v27 → QUEUED
+Execution #1004 → v25 → FAILED
 ```
 
 одночасно.
@@ -834,7 +698,7 @@ Execution #1004 → Robot 184.25 → FAILED
 |---|---|
 | **Execution ID** | Унікальний ID запуску |
 | **Robot ID** | Robot |
-| **Version Number** | Конкретна Version |
+| **Version ID** | Конкретна Version |
 | **Lifecycle** | TEST / PROD |
 | **Requested By** | Хто запросив запуск |
 | **Requested At** | Коли запросив |
@@ -846,16 +710,7 @@ Execution #1004 → Robot 184.25 → FAILED
 | **Result** | Результат |
 | **Error** | Помилка, якщо є |
 
-**Ключове правило:** кожен Execution повинен однозначно посилатися на Robot ID.Version Number.
-
-Наприклад:
-
-```
-Robot ID = 184
-Version Number = 2
-```
-
-означає виконання повного snapshot Robot’а 184.2.
+**Ключове правило:** кожен Execution повинен однозначно посилатися на Robot ID + Version ID.
 
 Це дозволяє визначити, **яка саме реалізація Robot’а фактично виконувалась**.
 
@@ -916,29 +771,27 @@ ROBOT
 ├── Health
 │
 ├── Active Production Version
-│      └──► Version Number
+│      └──────────────────► VERSION [v…]
 │
 └── Versions[]
        │
-       ├── Version 1 → 184.1
-       │        └── Full Definition / Configuration
-       │
-       ├── Version 2 → 184.2
-       │        └── Full Definition / Configuration
-       │
-       └── Version 3 → 184.3
-                └── Full Definition / Configuration
+       ├── VERSION v25
+       ├── VERSION v26
+       └── VERSION v27
+              │
+              ├── Definition
+              ├── Release State
+              ├── Authorization
+              └── ...
 ```
 
 ```
 EXECUTION[]
     │
-    ├── Execution #1001 → Robot 184.27
-    ├── Execution #1002 → Robot 184.27
-    └── Execution #1003 → Robot 184.26
+    ├── Execution #1001 → Robot + Version v27
+    ├── Execution #1002 → Robot + Version v27
+    └── Execution #1003 → Robot + Version v26
 ```
-
-**Ключовий принцип:** кожна Version є повним незалежним snapshot’ом Robot’а. Version не зберігає лише зміни відносно іншої Version та не потребує попередньої Version для відтворення власної Definition.
 
 ### 4.3. Принцип розділення станів
 
@@ -946,7 +799,7 @@ EXECUTION[]
 |---|---|
 | Robot | Що це за автоматизація? |
 | Robot ID | Який саме Robot? |
-| Version | Яка конкретна повністю збережена реалізація Robot’а? |
+| Version | Яка конкретна реалізація Robot’а? |
 | Active Production Version | Яка Version зараз активна у PROD? |
 | Lifecycle | На якому етапі життєвого циклу Robot? |
 | Release State | На якому етапі release знаходиться Version? |
@@ -1278,7 +1131,7 @@ Orchestrator повинен вести Audit усіх критичних дій.
 - When
 - Action
 - Robot ID
-- Version Number
+- Version ID
 - Previous State
 - New State
 - Reason
@@ -1325,7 +1178,7 @@ Assistant не повинен мати можливості обійти:
 Розглянемо Robot’а:
 
 ```
-Robot ID: RBT-184
+Robot ID: RBT-000184
 Name: Обробка рахунків
 ```
 
@@ -1357,7 +1210,7 @@ Lifecycle = TEST
 Створюється:
 
 ```
-184.10
+Version v10
 ```
 
 **Крок 4**
@@ -1378,8 +1231,8 @@ Execution #1100
 Створюються:
 
 ```
-184.11
-184.12
+v11
+v12
 ```
 
 **Крок 6**
@@ -1387,7 +1240,7 @@ Execution #1100
 Developer тестує v12.
 
 ```
-184.12
+v12
 Authorization = TEST authorization
 ```
 
@@ -1396,7 +1249,8 @@ Authorization = TEST authorization
 Developer вибирає:
 
 ```
-RBT-184.12
+RBT-000184
+v12
 ```
 
 і натискає:
@@ -1455,7 +1309,7 @@ Active PROD = v12
 Robot:
 
 ```
-RBT-184.1
+RBT-000184
 Lifecycle = TEST
 ```
 
@@ -1519,7 +1373,7 @@ Robot {
   Availability
   Health
 
-  ActiveProductionVersion
+  ActiveProductionVersionID
 
   Versions[]
 }
@@ -1529,12 +1383,14 @@ Robot {
 
 ```
 Version {
+  VersionID
   RobotID
-  Version Number
+  Number
 
   CreatedBy
   CreatedAt
 
+  SourceVersionID
   ChangeDescription
 
   ReleaseState
@@ -1618,43 +1474,40 @@ Execution {
 4. Robot має Updated By / Updated At
 5. Version є окремою сутністю
 6. Robot має набір Versions
-7. Version має Version Number у межах конкретного Robot’а
-8. Кожна Version містить повний snapshot Definition / Configuration Robot’а
-9. Version не залежить від попередньої Version для відтворення або виконання
-10. Version має Created By / Created At
-11. Version є незмінною після створення
-12. Нова execution-affecting зміна створює нову Version, яка є повним snapshot’ом Robot’а з урахуванням цієї зміни
-13. Active Production Version однозначно визначає конкретну Version за Robot ID.Version Number
-14. Active Production Version не є окремим lifecycle status
-15. Lifecycle підтримує DRAFT / TEST / PROD / ARCHIVED
-16. Authorization є окремим виміром
-17. Availability є окремим виміром
-18. Health є окремим виміром
-19. PROD може мати PENDING_APPROVAL
-20. PROD execution неможливий без необхідного approval
-21. Approval прив'язаний до конкретної Version
-22. Нова Version не успадковує автоматично PROD approval попередньої
-23. TEST підтримує багаторазові executions
-24. TEST не вимагає approval перед кожним execution
-25. Test Period має valid_from / valid_to
-26. Test Period може бути revoked
-27. Після expiry нові TEST executions блокуються
-28. Поведінка вже запущених executions після expiry задається policy
-29. Один Assistant використовується для TEST та PROD
-30. Orchestrator контролює execution
-31. Assistant не обходить Orchestrator
-32. TEST та PROD логічно розділені в Orchestrator
-33. PROD має вищий priority за TEST
-34. Execution є окремою сутністю
-35. Execution посилається на конкретні Robot ID.Version Number
-36. Regular User не бачить DRAFT/TEST за базовою моделлю
-37. Developer бачить Robot’а відповідно до RBAC
-38. Admin має повну visibility
-39. TEST → PROD interaction контролюється policy
-40. Критичні дії записуються в Audit
-41. Rollback не створює нову Version
-42. Rollback змінює Active Production Version
-43. Rollback не змінює Definition жодної існуючої Version
+7. Version має власний Version ID
+8. Version має Created By / Created At
+9. Version є незмінною після створення
+10. Нова execution-affecting зміна створює нову Version
+11. Active Production Version є pointer на конкретну Version
+12. Active Production Version не є окремим lifecycle status
+13. Lifecycle підтримує DRAFT / TEST / PROD / ARCHIVED
+14. Authorization є окремим виміром
+15. Availability є окремим виміром
+16. Health є окремим виміром
+17. PROD може мати PENDING_APPROVAL
+18. PROD execution неможливий без необхідного approval
+19. Approval прив'язаний до конкретної Version
+20. Нова Version не успадковує автоматично PROD approval попередньої
+21. TEST підтримує багаторазові executions
+22. TEST не вимагає approval перед кожним execution
+23. Test Period має valid_from / valid_to
+24. Test Period може бути revoked
+25. Після expiry нові TEST executions блокуються
+26. Поведінка вже запущених executions після expiry задається policy
+27. Один Assistant використовується для TEST та PROD
+28. Orchestrator контролює execution
+29. Assistant не обходить Orchestrator
+30. TEST та PROD логічно розділені в Orchestrator
+31. PROD має вищий priority за TEST
+32. Execution є окремою сутністю
+33. Execution посилається на конкретні Robot ID + Version ID
+34. Regular User не бачить DRAFT/TEST за базовою моделлю
+35. Developer бачить Robot’а відповідно до RBAC
+36. Admin має повну visibility
+37. TEST → PROD interaction контролюється policy
+38. Критичні дії записуються в Audit
+39. Rollback не створює нову Version
+40. Rollback змінює Active Production Version
 
 ## 10. Невирішені design decisions
 
@@ -1698,50 +1551,48 @@ IDENTITY
   ↓
 Robot ID
   ↓
-VERSIONS
-184.1 / 184.2 / 184.3 / ...
+IMPLEMENTATION
   ↓
-FULL IMMUTABLE SNAPSHOT
+Version
   ↓
-LIFECYCLE / AUTHORIZATION / AVAILABILITY / HEALTH
+LIFECYCLE
+DRAFT / TEST / PROD / ARCHIVED
+  │
+  ├── AUTHORIZATION
+  │     NOT_REQUIRED / PENDING / APPROVED / ...
+  │
+  ├── AVAILABILITY
+  │     ENABLED / DISABLED / SUSPENDED
+  │
+  └── HEALTH
+        HEALTHY / WARNING / ERROR / OFFLINE
 ```
-
-Для кожного Robot’а:
 
 ```
 Robot
-RobotID = 184
   │
-  ├── Version 1
-  │     Robot ID = 184
-  │     Number = 1
-  │     Display = 184.1
-  │     Definition = FULL SNAPSHOT
-  │
-  ├── Version 2
-  │     Robot ID = 184
-  │     Number = 2
-  │     Display = 184.2
-  │     Definition = FULL SNAPSHOT
-  │
-  └── Version 3
-        Robot ID = 184
-        Number = 3
-        Display = 184.3
-        Definition = FULL SNAPSHOT
+  └── Active Production Version
+            ↓
+         Version
 ```
 
-Одна Version може бути визначена як Active Production Version.
-
-Execution завжди посилається на конкретну пару: Robot ID.Version Number
-
-Наприклад: *Robot 184.2*
+```
+Version
+  │
+  └── Executions[]
+         │
+         ├── QUEUED
+         ├── RUNNING
+         ├── PAUSED
+         ├── COMPLETED
+         ├── FAILED
+         └── CANCELLED
+```
 
 **Основний принцип:**
 
 **Robot** визначає, що це за автоматизація.
-**Version** визначає конкретний повністю збережений стан реалізації цієї автоматизації.
-**Version** є незмінною та самодостатньою для виконання.
+**Version** визначає, яка саме реалізація автоматизації.
 **Lifecycle** визначає етап життєвого циклу Robot’а.
 **Authorization** визначає, чи дозволене виконання.
 **Availability** визначає, чи дозволене виконання зараз.
@@ -1774,65 +1625,3 @@ Assistant
   ↓
 Target Machine
 ```
-
-Отже, модель Robot’а:
-
-```
-                 ROBOT
-                ID = 184
-                   │
-      ┌────────────┼────────────┐
-      │            │            │
-    184.1        184.2        184.3
-    FULL         FULL         FULL
-  SNAPSHOT     SNAPSHOT     SNAPSHOT
-      │            │            │
-     old          PROD         TEST
-```
-
-Ми окремо зберігаємо Robot ID, окремо - Version Number, але розробнику/користувачу показуємо (Display) їх комбінацію “RobotID” + “.” + “Version Number”:
-
-```
-Robot
-└── Robot ID = 184
-
-Version
-├── Robot ID = 184
-├── Version Number = 27
-└── Display = 184.27
-```
-
-Таким чином 184.2 - не якийсь окремий технічний Version ID, а зрозуміле представлення:
-
-```
-Robot ID = 184
-Version = 2
-```
-
-При цьому в базі можна мати:
-
-```
-Robot
---------
-ID = 184
-
-RobotVersion
-------------
-RobotID = 184
-Number = 1
-Definition = [повний snapshot]
-
-RobotVersion
-------------
-RobotID = 184
-Number = 2
-Definition = [повний snapshot]
-
-RobotVersion
-------------
-RobotID = 184
-Number = 3
-Definition = [повний snapshot]
-```
-
-Отже, ми беремо ідею про «копію повністю» та простий rollback, але не робимо штучно новий Robot ID для кожної версії.

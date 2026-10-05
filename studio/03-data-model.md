@@ -4,11 +4,19 @@
 
 Поки що це **чернетка для обговорення**, не готова схема.
 
+> ⚠️ **З 2026-10-05 (D31) таблиці живуть у двох БД.** У Studio — робоча копія
+> робота, версії (оригінал), компоненти, процеси, лічильники номерів. В
+> оркестраторі — реєстр роботів зі станами, копія версій, запуски, погодження,
+> Test Period, політики, аудит, машини, облікові дані, розклади. В обох —
+> `outbox` і `inbox` (D67). Розподіл — [28-studio-service.md](28-studio-service.md#що-де-живе).
+
 ---
 
 ## Крок 1. Хто володіє роботом і що таке «версія»
 
 > ✅ **Переглянуто під ТЗ (D32), 2026-09-17.** Версія створюється за правилом D34, таблиці доповнено полями ТЗ §4.1, §4.1.5 і §7. Історія обговорення нижче збережена; актуальні таблиці — у розділі «Таблиці під ТЗ §7».
+>
+> ✅ **Оновлено під редакцію ТЗ 10/1/2026, 2026-10-05.** Robot ID — номер у межах організації, ключ робота — UUID (D62), версія — пара `(robot_id, number)` без власного id (D61), без `source_version_id` (D63), версія — повний знімок разом із компонентами (D64).
 
 ### Як зараз
 
@@ -89,8 +97,8 @@
 ТЗ вимагає дві речі одночасно:
 
 - нова **незмінна** Version на кожне збереження змін, що впливають на виконання
-  (§4.1.4, критерій 10);
-- **кожен запуск посилається на конкретну Version** (§4.1.17, критерій 33).
+  (§4.1.4, критерій 12);
+- **кожен запуск посилається на конкретну Version** (§4.1.17, критерій 35).
 
 Як це працює:
 
@@ -102,16 +110,22 @@
 | **Нічого не змінилось** | нова Version **не** створюється |
 
 Як система розуміє, що «нічого не змінилось»: порівнює хеш `definition` робочої
-копії з `definition_hash` версії, від якої почали редагувати
-(`source_version_id`). Хеш рахується **тільки** від `definition`.
+копії з `definition_hash` версії, від якої відкрито робочу копію
+(`robots.working_copy_base_number`, D63). Хеш рахується **тільки** від
+`definition`.
 
 ```
-  робоча копія ──«Зберегти»──► хеш змінився ──► нова версія v13
+  робоча копія ──«Зберегти»──► хеш змінився ──► нова версія 184.13
 
-  робоча копія ──«Запустити»──► хеш той самий, що у v12?
-                                   ├── так ──► запуск v12
-                                   └── ні ───► створити v13 ──► запуск v13
+  робоча копія ──«Запустити»──► хеш той самий, що у 184.12?
+                                   ├── так ──► запуск 184.12
+                                   └── ні ───► створити 184.13 ──► запуск 184.13
 ```
+
+**Як створюється версія** (ТЗ §4.1.4): береться повний стан робочої копії, у
+нього копіюється вміст використаних версій компонентів (D64), присвоюється
+наступний номер — і все це зберігається як незалежний незмінний знімок. Від
+попередньої версії нова не залежить.
 
 Результат: 800 запусків без змін — **одна** версія, а не 800.
 
@@ -132,8 +146,8 @@
 
 | Поле | Тип | Навіщо | ТЗ |
 |------|-----|--------|----|
-| `id` | UUID | внутрішній ключ | |
-| `code` | str, унікальний | Robot ID для людей: `RBT-000184`. Генерується один раз і не змінюється | §4.1.1 |
+| `id` | UUID | внутрішній технічний ключ: на нього посилаються таблиці, він в адресах API. Людина його не бачить (D62) | |
+| `number` | int | **Robot ID**: `184`, показ `RBT-184`. Свій в організації, `UNIQUE (organization_id, number)`, не змінюється й не перевикористовується — видає лічильник організації в БД Studio (D62, D68) | §4.1.1 |
 | `organization_id` | FK → organizations | власник-організація (D8) | |
 | `name` | str | унікально в межах організації | §4.1 |
 | `description` | str, nullable | | §4.1 |
@@ -145,34 +159,40 @@
 | `availability` | enum | ENABLED / DISABLED / SUSPENDED. Хто змінює — D50 | §4.1.8 |
 | `availability_reason` | str, nullable | чому вимкнено чи призупинено; для SUSPENDED обовʼязкова (D50) | §4.1.8 |
 | `health` | enum, nullable | HEALTHY / WARNING / ERROR / OFFLINE. Рахується з PROD-запусків після кожного завершення (D52); порожньо — PROD-запусків ще не було | §4.1.9 |
-| `active_production_version_id` | FK → robot_versions, nullable | яка версія зараз у PROD — вказівник, не статус | §4.1.10 |
+| `active_production_version_number` | int, nullable | **номер** версії, що зараз у PROD — вказівник, не статус. Ключ `(id, active_production_version_number)` → `robot_versions`, тож вказати на версію чужого робота неможливо (D61) | §4.1.10 |
 | `working_copy` | JSONB, nullable | робоча копія в редакторі (D34) | |
+| `working_copy_base_number` | int, nullable | від якої версії відкрито робочу копію — для «нічого не змінилось» (D63) | |
 
 Що змінилось порівняно з попередньою чернеткою:
 
 | Було | Стало |
 |------|-------|
 | `is_archived` | `lifecycle = ARCHIVED` |
-| `published_version_id` | `active_production_version_id` |
+| `published_version_id` | `active_production_version_number` |
 | `draft` | `working_copy` |
+| `code` `RBT-000184` | `number` у межах організації, показ `RBT-184` (D62) |
 
-**`robot_versions`** — незмінна реалізація (§4.1.3, §4.1.5)
+**`robot_versions`** — незмінний повний знімок (§4.1.3, §4.1.5)
+
+**Головний ключ — пара `(robot_id, number)`, власного id немає** (D61). Показ —
+`184.2`; у базі цей рядок не зберігається.
 
 | Поле | Тип | Навіщо | ТЗ |
 |------|-----|--------|----|
-| `id` | UUID | Version ID | §4.1.5 |
-| `robot_id` | FK → robots | | §4.1.5 |
-| `number` | int | v1, v2 … vn у межах робота | §4.1.5 |
-| `source_version_id` | FK → robot_versions, nullable | від якої версії почали редагувати | §4.1.5 |
-| `change_description` | str, nullable | опис змін | §4.1.5 |
+| `robot_id` | FK → robots, частина ключа | | §4.1.5 Robot ID |
+| `number` | int, частина ключа | 1, 2 … n у межах робота. «Найбільший + 1» під блокуванням рядка робота, повторно не використовується | §4.1.5 Version Number |
+| `change_description` | str, nullable | опис змін: «змінено блок 4 — додано перевірку наявності документа» | §4.1.5 |
 | `release_state` | enum | DRAFT / TESTING / RELEASED / SUPERSEDED / REJECTED. Переходи — [18-version-release.md](18-version-release.md) (D39) | §4.1.5 |
 | `authorization` | enum | NOT_REQUIRED / PENDING_APPROVAL / APPROVED / REJECTED / REVOKED / EXPIRED | §4.1.7 |
-| `definition` | JSONB | сам сценарій (D4): кроки, елементи, параметри, посилання на версії компонентів і на облікові дані, **тригери** (D58) | §4.1.5 |
-| `definition_hash` | str | контроль цілісності + «чи змінилось» (D34) | §4.1.5 |
+| `definition` | JSONB | **повний** сценарій (D4): кроки, елементи, параметри, **вміст використаних версій компонентів** з позначкою, звідки взято (D64), посилання на облікові дані, **тригери** (D58) | §4.1.5 |
+| `definition_hash` | str | контроль цілісності повного знімка + «чи змінилось» (D34) | §4.1.5 |
 | `min_assistant_version` | str, nullable | мінімальна версія Assistant, що вміє всі активності версії (D2) | |
 | `created_by_user_id` | FK → users, nullable | хто створив версію | §4.1.5 |
 | `released_by_user_id` | FK → users, nullable | хто виконав release — розробник, що подав у PROD, **не** адмін (D39) | §4.1.5 |
 | `released_at` | timestamp, nullable | | §4.1.5 |
+
+Поля `source_version_id` немає: у редакції ТЗ 10/1/2026 його прибрано, а версія не
+повинна залежати від попередньої (D63).
 
 **Що саме «незмінне» у версії.** Ніколи не змінюються `definition` і
 `definition_hash` — це і є реалізація. А `release_state` і `authorization` — це
@@ -267,6 +287,7 @@ ZIP-архівом. Але за D1 робот — це JSON, і важить к�
 | `os` | str, nullable | «Windows 11 23H2» — для діагностики |
 | `agent_version` | str, nullable | версія десктопа; знадобиться, коли зʼявляться нові активності |
 | `last_seen_at` | timestamp | коли агент востаннє озивався |
+| `purpose` | enum | `PROD` / `TEST` / `ANY`, за замовчуванням `ANY` — під які запуски машина (D70) |
 
 ### Чому `assigned_user_id` nullable уже зараз
 
@@ -301,8 +322,8 @@ ZIP-архівом. Але за D1 робот — це JSON, і важить к�
 
 ### Що таке Execution
 
-**Execution** — один запуск конкретної версії. «Виконати v12 робота
-`RBT-000184` на машині ПК-бухгалтерії в контексті PROD».
+**Execution** — один запуск конкретної версії. «Виконати `184.12` на машині
+ПК-бухгалтерії в контексті PROD».
 
 Це не сам робот і не його версія. Робот — рецепт, версія — заморожений рецепт,
 Execution — **одне приготування** за цим рецептом.
@@ -318,8 +339,8 @@ Execution — **одне приготування** за цим рецептом
 |------|-----|--------|----|
 | `id` | UUID | Execution ID | §4.1.17 |
 | `organization_id` | FK → organizations | | |
-| `robot_id` | FK → robots | ТЗ вимагає посилання і на робота, і на версію | §4.1.17 |
-| `robot_version_id` | FK → robot_versions | **що саме** виконуємо | §4.1.17 |
+| `robot_id` | FK → robots | | §4.1.17 Robot ID |
+| `version_number` | int | **що саме** виконуємо. Пара `(robot_id, version_number)` — ключ → `robot_versions` (D61) | §4.1.17 Version Number |
 | `lifecycle` | enum | TEST / PROD — у якому контексті запуск | §4.1.17 |
 | `machine_id` | FK → machines | **де**: Assistant на Host (D3a) | §4.1.17 |
 | `status` | enum | див. нижче | §4.1.18 |
@@ -339,13 +360,18 @@ Execution — **одне приготування** за цим рецептом
 | `steps_total` | int, nullable | скільки кроків мав пройти (D13) | |
 | `steps_done` | int, nullable | скільки пройшов (D13) | |
 | `errors_count` | int, nullable | скільки помилок було по дорозі (D13) | |
+| `replaced_execution_id` | FK → executions, nullable | якщо запуск перестворено при зміні активної версії — на який попередній (D72) | |
+| `scope` | JSONB, nullable | яку частину версії виконуємо: точки зупинки або виділені кроки зі змінними. Порожнє — весь робот. Лише TEST (D66) | §4.1.13 |
 
 Три останні поля — **форма запуску, яка переживає чищення логів** (D13): логи
 успішних запусків живуть 30 днів, невдалих — 90, а `executions` не чистимо.
 
-**`robot_id` тепер зберігаємо.** Раніше його не тримали, бо робота видно через
-версію. Але ТЗ прямо вимагає обидва посилання (§4.1.17, критерій 33). Що версія
-справді належить роботу, перевіряє pre-run check №3 (§4.7.2).
+**Запуск посилається на пару `Robot ID.Version Number`** (§4.1.17, критерій 35).
+Оскільки це і є ключ версії, база сама гарантує pre-run check №3 «Version
+належить цьому Robot'у» (§4.7.2).
+
+У §7 ТЗ в Execution досі стоїть `VersionID` — це розбіжність усередині ТЗ; ідемо
+за §4.1.17 і критерієм 35 (D61).
 
 ### Статуси запуску (D35 ✅, під ТЗ §4.1.18)
 
@@ -586,6 +612,7 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 | `name` | str | «1С — бухгалтер». Це юзер бачить у випадайці |
 | `username` | str | логін; зберігається відкрито |
 | `secret` | str | пароль, **зашифрований** |
+| `single_session` | bool | «лише одна сесія»: за замовчуванням `true` — запис одночасно використовує лише один запуск (D69) |
 | `created_by_user_id` | FK → users, nullable | |
 
 Правила:
@@ -600,6 +627,19 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 
 Хто керує: `ADMIN` створює й редагує. `DEVELOPER` може **використати** креденшл
 у роботі, але не побачити пароль.
+
+**`credential_locks`** (D69) — які облікові дані зараз зайняті
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `credential_id` | FK → credentials, **унікальний** | один запис — не більше одного власника |
+| `execution_id` | FK → executions | хто тримає |
+| `acquired_at` | timestamp | |
+
+Унікальність `credential_id` робить захоплення атомарним: два запуски не
+візьмуть той самий запис навіть одночасно. Запуск бере всі свої записи разом із
+машиною в одній транзакції або нічого; рядки видаляються, коли запуск
+завершився будь-як.
 
 ---
 
@@ -705,7 +745,7 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 | `status` | enum | PENDING / APPROVED / REJECTED / `CANCELLED` | **доповнено** `CANCELLED` |
 | `entity_label` | str | текст для картки в дзвіночку | є |
 | `robot_id` | FK → robots | до якого робота запит | **нове** |
-| `robot_version_id` | FK → robot_versions, nullable | для `PROD_PROMOTION` | **нове** |
+| `version_number` | int, nullable | для `PROD_PROMOTION`; пара `(robot_id, version_number)` → `robot_versions` (D61) | **нове** |
 | `test_period_id` | FK → test_periods, nullable | для `TEST_PERIOD` | **нове** |
 | `requested_by_user_id` | FK → users, nullable | хто попросив | **нове** |
 | `request_comment` | str, nullable | що і навіщо просять | **нове** |
@@ -713,10 +753,10 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 | `decided_at` | timestamp, nullable | коли | є |
 | `decision_reason` | str, nullable | чому — іде в аудит (§4.7.5 Reason) | **нове** |
 
-Заповнене рівно одне з `robot_version_id` / `test_period_id` — залежно від типу.
+Заповнене рівно одне з `version_number` / `test_period_id` — залежно від типу.
 
 **Стан живе на обʼєкті, запит — це історія.** Рішення по `PROD_PROMOTION` змінює
-`robot_versions.authorization` і `robots.active_production_version_id`, рішення
+`robot_versions.authorization` і `robots.active_production_version_number`, рішення
 по `TEST_PERIOD` — `test_periods.status`. Сам рядок погодження після рішення
 більше не змінюється.
 
@@ -740,10 +780,9 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 | `actor_type` | enum | `USER` / `ADMIN` / `SYSTEM` | §4.7.5 Who |
 | `actor_user_id` | UUID, nullable | якщо дію зробив юзер | §4.7.5 Who |
 | `actor_admin_id` | UUID, nullable | якщо дію зробив адмін | §4.7.5 Who |
-| `robot_id` | UUID, nullable | | §4.7.5 Robot ID |
-| `robot_code` | str, nullable | знімок `RBT-000184` на момент події | |
-| `robot_version_id` | UUID, nullable | | §4.7.5 Version ID |
-| `version_number` | int, nullable | знімок номера версії | |
+| `robot_id` | UUID, nullable | технічний ключ робота | |
+| `robot_number` | int, nullable | Robot ID — `184`; разом з `organization_id` однозначний назавжди, бо номери не перевикористовуються | §4.7.5 Robot ID |
+| `version_number` | int, nullable | разом із `robot_number` дає `184.2` | §4.7.5 Version Number |
 | `test_period_id` | UUID, nullable | | |
 | `execution_id` | UUID, nullable | | §4.7.5 Execution ID |
 | `machine_id` | UUID, nullable | Assistant на Host | §4.7.5 Assistant, Host |
@@ -755,8 +794,8 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 
 **Без зовнішніх ключів на обʼєкти — навмисно.** Адмін може остаточно видалити
 робота (D25), а історія має пережити сам обʼєкт. Тому ідентифікатори
-зберігаються як значення, а читабельні `robot_code` і `version_number` —
-знімком на момент події.
+зберігаються як значення. Окремий знімок `robot_code` більше не потрібен: Robot
+ID (`robot_number`) сам читабельний і не змінюється (D62).
 
 **Тільки дописування.** Жодних змін і видалень рядків — ні через API, ні задачами
 очищення, ні скиданням організації (D41).
@@ -800,7 +839,7 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 `audit_events` як `POLICY_ACTIVATED` / `POLICY_DEACTIVATED` / `POLICY_CHANGED`
 (D41–D42).
 
-Пріоритет PROD над TEST — не політика, а правило ТЗ (критерій 31), тому колонки
+Пріоритет PROD над TEST — не політика, а правило ТЗ (критерій 33), тому колонки
 для нього немає. Колонки черг — D48, D49 ✅.
 
 ---
@@ -809,14 +848,18 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 
 > ✅ Прийнято (D57). Як працює — [25-bpmn-components.md](25-bpmn-components.md).
 
-**`processes`** — `id`, `organization_id`, `code` (`PRC-000012`), `name`,
-`description`, `owner_user_id`, `created_by_user_id`, `updated_by_user_id`,
-`working_copy` (BPMN XML), `current_version_id`, `is_archived`.
+Ідентичність — як у роботів (D65): `id` — внутрішній UUID, `number` — свій в
+організації, показ `PRC-12`; версія — пара `(process_id, number)`, показ `12.1`.
 
-**`process_versions`** — `id`, `process_id`, `number`, `bpmn_xml` (незмінний),
+**`processes`** — `id` (UUID), `organization_id`, `number`, `name`,
+`description`, `owner_user_id`, `created_by_user_id`, `updated_by_user_id`,
+`working_copy` (BPMN XML), `working_copy_base_number`, `current_version_number`,
+`is_archived`.
+
+**`process_versions`** — ключ `(process_id, number)`, `bpmn_xml` (незмінний),
 `definition_hash`, `change_description`, `created_by_user_id`.
 
-**`process_tasks`** — `id`, `process_version_id`, `bpmn_element_id`,
+**`process_tasks`** — `id`, `process_id` + `version_number`, `bpmn_element_id`,
 `task_type` (`USER` / `ROBOT` / `MANUAL`), `robot_id` (для `ROBOT`), `lane`.
 
 Процес у MVP нічого не виконує, тому без lifecycle TEST / PROD і без погоджень.
@@ -827,23 +870,31 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 
 > ✅ Прийнято (D58). Як працює — [25-bpmn-components.md](25-bpmn-components.md).
 
-**`components`** — `id`, `organization_id`, `code` (`CMP-000007`), `name`,
-`description`, `owner_user_id`, `created_by_user_id`, `updated_by_user_id`,
-`working_copy`, `current_version_id`, `is_archived`.
+Ідентичність — як у роботів (D65): `id` — внутрішній UUID, `number` — свій в
+організації, показ `CMP-7`; версія — пара `(component_id, number)`, показ `7.3`.
 
-**`component_versions`** — `id`, `component_id`, `number`, `definition` (JSONB:
+**`components`** — `id` (UUID), `organization_id`, `number`, `name`,
+`description`, `owner_user_id`, `created_by_user_id`, `updated_by_user_id`,
+`working_copy`, `working_copy_base_number`, `current_version_number`,
+`is_archived`.
+
+**`component_versions`** — ключ `(component_id, number)`, `definition` (JSONB:
 параметри, результат, кроки, елементи — незмінний), `definition_hash`,
 `change_description`, `created_by_user_id`.
 
-Крок робота посилається на **`component_version_id`**, а не на компонент. Версію,
-на яку посилається хоч одна версія робота, видалити не можна.
+У робочій копії робота крок указує **конкретну версію** компонента
+(`component_id` + `number`). Коли створюється версія робота, вміст цієї версії
+компонента **копіюється** в `definition` робота з позначкою, звідки взято (D64) —
+версія робота самодостатня. Версії компонентів не видаляються (лише архів) — для
+історії.
 
 ---
 
 ## Підсумок: як усе зв'язано
 
 > Оновлено під ТЗ 2026-09-17: `jobs` → `executions`, `published_version_id` →
-> `active_production_version_id`.
+> `active_production_version_id`. Оновлено 2026-10-05 (D61): посилання на версію
+> — пара `(robot_id, number)`.
 
 ```
                           organizations
@@ -852,12 +903,12 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
         │              │               │               │
       users         machines         robots        credentials
         │           (Assistant       │  │
-        │            на Host)        │  └─ active_production_version_id ─┐
-        │              │             │                                   │
-        │              │             ▼                                   ▼
-        │              │        robot_versions ◄─────────────────────────┘
+        │            на Host)        │  └─ active_production_version_number ─┐
+        │              │             │                                       │
+        │              │             ▼                                       ▼
+        │              │        robot_versions ◄─────────────────────────────┘
         │              │             │
-        │              │             │ robot_version_id
+        │              │             │ (robot_id, version_number)
         │              ▼             ▼
         └─ requested ► executions ◄──┘ ◄──── schedules
                           │
