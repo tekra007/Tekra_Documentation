@@ -50,6 +50,7 @@
 | 26 | [26-screens-tz.md](26-screens-tz.md) | Екрани Studio під ТЗ: як показувати стани |
 | 27 | [27-partial-runs.md](27-partial-runs.md) | Тестування частин версії: точки зупинки, запуск виділеного |
 | 28 | [28-studio-service.md](28-studio-service.md) | Studio — окремий сервіс: хто з ким говорить, що де живе, брокер |
+| 29 | [29-deployment-model.md](29-deployment-model.md) | Модель розгортання (Free shared / Paid isolated / Marketplace) — розбір **пропозиції**, кандидати й питання до автора |
 
 Далі з'являться: формат DSL, модель даних, WS-протокол, MVP-скоуп.
 
