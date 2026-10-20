@@ -59,12 +59,15 @@ Face уже має канал `/admins/ws` — події додаються д�
 
 ## Оркестратор ↔ десктоп
 
-### Реєстрація машини (D3a, D9, D10)
+### Реєстрація Assistant і машини (D76, D77, D10)
 
 | Напрямок | Повідомлення | Вміст |
 |----------|--------------|-------|
-| → сервер | `MACHINE_REGISTER` | `machine_key`, `name`, `os`, `agent_version`, `capabilities` |
-| ← сервер | `MACHINE_REGISTERED` | `machine_id` |
+| → сервер | `ASSISTANT_REGISTER` | `assistant_key`, `machine_guid`, `machine_name`, `os`, `agent_version`, `protocol_version`, `capabilities` |
+| ← сервер | `ASSISTANT_REGISTERED` | `assistant_id`, `machine_id`, номери `ASSISTANT-104` / `MACHINE-27`, дозволені середовища |
+
+`protocol_version` — щоб оркестратор знав, чи підтримує цей Assistant (deployment
+оновлюються окремо від ПК, D74).
 
 `capabilities` — які провайдери вміє агент. За ними перевіряється сценарій
 (D14, через запит Studio → оркестратор) і перевірка №12 перед запуском.

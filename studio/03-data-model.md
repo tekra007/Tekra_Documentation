@@ -261,6 +261,44 @@ ZIP-архівом. Але за D1 робот — це JSON, і важить к�
 
 ## Крок 2. Machine
 
+> ✅ **Переглянуто 2026-10-20 (D76, D77):** машина й Assistant — **окремі
+> сутності**. Актуальні таблиці — «Машина й Assistant (D76)» нижче; решта кроку
+> — історія.
+
+### Машина й Assistant (D76 ✅)
+
+**`machines`** — компʼютер або VM
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `id` | UUID | технічний ключ |
+| `organization_id` | FK → organizations | чия машина (D8) |
+| `number` | int | `MACHINE-27` — номер у межах організації, без повторного використання (як D62) |
+| `machine_guid` | str | `MachineGuid` Windows — ідентифікатор інсталяції ОС (D77). Унікальний у межах організації |
+| `name` | str | імʼя компʼютера, щоб людина впізнала |
+| `os` | str, nullable | «Windows 11 23H2» — для діагностики |
+
+**`assistants`** — встановлена програма Assistant на машині
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `id` | UUID | технічний ключ |
+| `organization_id` | FK → organizations | |
+| `number` | int | `ASSISTANT-104` — номер у межах організації |
+| `assistant_key` | str | UUID встановлення, який шле агент — колишній `machine_key` (D9) |
+| `machine_id` | FK → machines | на якій машині. **Один Assistant на машину** — базова модель |
+| `allowed_environments` | масив enum | `TEST` / `PROD` — де можна виконувати; змінює адмін. Замінює призначення машини з D70 |
+| `agent_version` | str, nullable | версія програми (D2) |
+| `protocol_version` | str, nullable | версія протоколу з оркестратором — для оновлень deployment окремо від ПК (D74) |
+| `capabilities` | JSONB | які провайдери вміє (D17) |
+| `last_seen_at` | timestamp | коли востаннє озивався |
+
+Черга й «один запуск на машину» — на **машину** (D47, D49): це фізичне
+обмеження робочого столу. Запуск зберігає і Assistant, і машину (ТЗ §4.1.17).
+
+**Два Assistant з однаковим `machine_guid` одночасно онлайн** — копія VM без
+sysprep (D77): попередження адміну й позначка в картці машини.
+
 ### Що це і навіщо
 
 **Machine** — конкретний комп'ютер або VM, на якому стоїть агент (десктоп).
@@ -342,7 +380,8 @@ Execution — **одне приготування** за цим рецептом
 | `robot_id` | FK → robots | | §4.1.17 Robot ID |
 | `version_number` | int | **що саме** виконуємо. Пара `(robot_id, version_number)` — ключ → `robot_versions` (D61) | §4.1.17 Version Number |
 | `lifecycle` | enum | TEST / PROD — у якому контексті запуск | §4.1.17 |
-| `machine_id` | FK → machines | **де**: Assistant на Host (D3a) | §4.1.17 |
+| `machine_id` | FK → machines | **де** — машина (Host); черга й «один запуск на машину» — по ній (D76) | §4.1.17 Host |
+| `assistant_id` | FK → assistants | **хто** виконав — Assistant (D76) | §4.1.17 Assistant |
 | `status` | enum | див. нижче | §4.1.18 |
 | `block_reason` | str, nullable | чому BLOCKED; те саме пишеться в Audit | §4.7.2 |
 | `source` | enum | `MANUAL` / `SCHEDULE` | |
@@ -859,8 +898,15 @@ ID (`robot_number`) сам читабельний і не змінюється (
 **`process_versions`** — ключ `(process_id, number)`, `bpmn_xml` (незмінний),
 `definition_hash`, `change_description`, `created_by_user_id`.
 
-**`process_tasks`** — `id`, `process_id` + `version_number`, `bpmn_element_id`,
-`task_type` (`USER` / `ROBOT` / `MANUAL`), `robot_id` (для `ROBOT`), `lane`.
+**`business_tasks`** (D78) — ідентичність бізнес-задачі: `id`, `organization_id`,
+`number` (у межах організації), `process_id`, `is_archived`. Поки без власних
+версій і належить одному процесу.
+
+**`process_tasks`** — вміст задачі в конкретній версії процесу: `id`,
+`process_id` + `version_number`, `business_task_id`, `bpmn_element_id`, назва,
+опис, `executor_type` (`HUMAN` / `AI` / `EXTERNAL_SYSTEM` / `ROBOT`, D78),
+`robot_id` (для `ROBOT`), `lane`. Так стара версія процесу не змінюється, а
+бізнес-задача має стабільну ідентичність.
 
 Процес у MVP нічого не виконує, тому без lifecycle TEST / PROD і без погоджень.
 

@@ -113,7 +113,7 @@ OFFLINE замість RUNNING / PAUSED, плитка «Executions running»; у
 | 16 | Concurrency model | ✅ | D49: машина — 1 запуск, PROD-робот — 1 активний на організацію |
 | 17 | Starvation prevention | ✅ | D73: звільнений обліковий запис — тому, хто чекає найдовше; без старіння пріоритету; причина очікування видна |
 | 18 | Resource locking | ✅ | D69: облікові дані «лише одна сесія» блокуються автоматично; файли й ліцензії — після MVP |
-| 19 | Resource reservation | ✅ | D70: призначення машини PROD / TEST / ANY; резервування за часом — після MVP |
+| 19 | Resource reservation | ✅ | D70 → D76: дозволені середовища на Assistant (машина під PROD = Assistant лише з `PROD`); резервування за часом — після MVP |
 | 20 | Deployment нової PROD Version без downtime | ✅ | D72: перемикання вказівника; черга перестворюється на новій версії; попередження про застарілих агентів |
 | 21 | UX lifecycle/version statuses у Studio | ✅ | D59 — [26](26-screens-tz.md) |
 | 22 | Working Version при одночасній Active Production Version | ✅ | D34: робоча копія не є версією й на Active Production Version не впливає |

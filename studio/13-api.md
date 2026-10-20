@@ -158,9 +158,11 @@
 
 | Метод | Шлях | Що робить |
 |-------|------|-----------|
-| `GET` | `/machines` | список: онлайн, версія агента, `capabilities`, призначення |
-| `GET` | `/machines/{id}` | картка |
-| `PATCH` | `/machines/{id}` | назва; `purpose` — `PROD` / `TEST` / `ANY`, лише адмін (D70) |
+| `GET` | `/machines` | список машин: номер, назва, ОС, її Assistant і його стан (D76) |
+| `GET` | `/machines/{id}` | картка; попередження, якщо `MachineGuid` повторюється (D77) |
+| `PATCH` | `/machines/{id}` | назва |
+| `GET` | `/assistants` | список: онлайн, версія, `capabilities`, дозволені середовища |
+| `PATCH` | `/assistants/{id}` | `allowed_environments` — `TEST` / `PROD`, лише адмін (D76) |
 
 Створення немає навмисно: машина зʼявляється сама, коли агент підключається
 (D10).
