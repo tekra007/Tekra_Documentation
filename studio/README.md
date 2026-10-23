@@ -53,6 +53,7 @@
 | 26 | [26-screens-tz.md](26-screens-tz.md) | Екрани Studio під ТЗ: як показувати стани |
 | 27 | [27-partial-runs.md](27-partial-runs.md) | Тестування частин версії: точки зупинки, запуск виділеного |
 | 28 | [28-studio-service.md](28-studio-service.md) | Studio — окремий сервіс: хто з ким говорить, що де живе, брокер |
+| 31 | [31-identity-keycloak.md](31-identity-keycloak.md) | Ідентичність і Keycloak — дизайн E0, затверджено (D83) |
 | 30 | [30-phase-0.md](30-phase-0.md) | Фаза 0 — задачі з критеріями готовності й порядком |
 | 29 | [29-deployment-model.md](29-deployment-model.md) | Модель розгортання (Free shared / Paid isolated / Marketplace) — **затверджено** (D74); розбір і оцінка впливу |
 
@@ -145,6 +146,7 @@
 | D80 | Схеми повідомлень брокера | ✅ поки в `Tekra-Orchester`, окремим модулем |
 | D81 | Сервер ідентичності | ✅ Keycloak |
 | D82 | Фронт Studio | ✅ свій застосунок `Tekra-Studio-front`; бек — `Tekra-Studio-back`; Face — адмін-панель |
+| D83 | Ідентичність — деталі | ✅ членство й ролі в нашій БД; TOTP/WebAuthn; вхід Assistant через браузер |
 | D14 | Співіснування старих ZIP-роботів | ✅ ні, тільки DSL |
 | D15 | Окремі репозиторії під Studio | ✅ змінено D31: бекенд — `Tekra-Studio-back` (створимо пізніше) |
 | D16 | Де зберігати документацію | ✅ репо `Tekra_Documentation` |

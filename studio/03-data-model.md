@@ -936,6 +936,154 @@ ID (`robot_number`) сам читабельний і не змінюється (
 
 ---
 
+## Крок 14. Фаза 0: акаунти, брокер, ключі (S1)
+
+> 🟡 **Пропозиція S1, 2026-10-23 — на узгодження з командою.** Після
+> узгодження міграції створює **людина** (AGENTS.md). Під D67 (брокер), D74
+> (модель розгортання), D75 / D83 (ідентичність), D76 (Assistant). Задачі —
+> [30-phase-0.md](30-phase-0.md).
+
+Прод-даних немає — таблиці змінюємо напряму, без перенесення рядків.
+
+### БД оркестратора
+
+**`accounts`** — акаунт людини (D83). Хто вона — знає Keycloak; тут дзеркало
+й налаштування.
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `id` | UUID | **наш** ключ акаунта. Не `sub` Keycloak: при Free → Paid акаунт переїжджає в інший Keycloak, і `sub` зміниться, а наш id — ні (D74) |
+| `keycloak_sub` | str, унікальний | хто це в Keycloak цього deployment |
+| `email` | str | показ і пошук; не унікальний у нас — унікальність стереже Keycloak |
+| `first_name`, `last_name` | str, nullable | |
+| `language` | enum | з колишньої `user_session` |
+| `theme`, `density` | str | з колишніх налаштувань адміна |
+| `last_login_at` | timestamp, nullable | |
+
+**`memberships`** — акаунт в організації з роллю (D83)
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `id` | UUID | |
+| `account_id` | FK → accounts | |
+| `organization_id` | FK → organizations | |
+| `role` | enum | `ADMIN` / `DEVELOPER` / `USER` (D23, D56) |
+| `status` | enum | `INVITED` / `ACTIVE` / `DISABLED` |
+| `department` | str, nullable | з колишніх `users` |
+| `pending_review` | bool | з колишніх `users` |
+| `invited_by_account_id` | FK → accounts, nullable | хто запросив |
+| `invited_at`, `joined_at` | timestamp, nullable | |
+| `welcome_message` | str, nullable | з колишнього запрошення |
+
+`UNIQUE (account_id, organization_id)` — одне членство на організацію.
+
+**`organizations`** — зміни:
+
+- прибрати `default_password_expiration` — політика паролів одна на deployment (D83);
+- **прибрати глобальну унікальність `name`**: вона була потрібна, бо десктоп
+  входив за назвою організації. Тепер не входить, а у спільному Free два
+  клієнти можуть називатися однаково.
+
+**`outbox`** — події на відправку (D67)
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `id` | bigint, послідовний | порядок відправки |
+| `message_id` | UUID, унікальний | id з конверта — за ним отримувач відсіює дублі |
+| `message_type` | str | `studio.robot_version.created` тощо |
+| `routing_key` | str | куди в RabbitMQ |
+| `envelope` | JSONB | повний конверт (D67) |
+| `created_at` | timestamp | |
+| `published_at` | timestamp, nullable | порожньо — ще не підтверджено брокером |
+| `attempts` | int | скільки разів пробували |
+| `next_attempt_at` | timestamp, nullable | коли пробувати знову |
+| `last_error` | str, nullable | |
+
+Індекс на ненадіслані (`published_at IS NULL`).
+
+**`inbox`** — оброблені вхідні (D67)
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `message_id` | UUID, ключ | дубль не вставиться — і не обробиться вдруге |
+| `message_type` | str | |
+| `processed_at` | timestamp | пишеться в тій самій транзакції, що й обробка |
+
+Старі рядки чистить планувальник (H1); строк — довший за найдовше повторне
+надсилання брокера, пропозиція — 30 днів.
+
+**`organization_keys`** — ключ даних організації (F3)
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `organization_id` | FK → organizations, ключ | один ключ на організацію |
+| `encrypted_data_key` | bytes | ключ даних, зашифрований ключем deployment |
+| `kek_id` | str | яким ключем deployment зашифровано — для заміни ключа |
+| `created_at`, `rotated_at` | timestamp | |
+
+Секрети в БД шифруються ключем даних своєї організації (AES-256-GCM, бібліотека
+`cryptography` — уже є в оркестраторі). Ключ deployment — з налаштувань, у БД
+не лежить. Free → Paid: перешифровується лише `encrypted_data_key`.
+
+**`assistant_enrollment_tokens`** — токени підключення Assistant (I2, D83)
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `id` | UUID | |
+| `organization_id` | FK → organizations | |
+| `token_hash` | str | у БД лише хеш — сам токен адмін бачить один раз |
+| `allowed_environments` | масив enum | з якими середовищами зареєструється Assistant (D76) |
+| `created_by_account_id` | FK → accounts | |
+| `expires_at` | timestamp | |
+| `used_at` | timestamp, nullable | одноразовий |
+| `assistant_id` | FK → assistants, nullable | хто ним зареєструвався — FK додається у фазі 1 разом з `assistants` |
+
+**`audit_events`** (крок 10) — зміни: замість `actor_user_id` і `actor_admin_id` —
+один `actor_account_id`; `actor_type` — `USER` / `SYSTEM`; додати `actor_role` —
+знімок ролі на момент дії.
+
+**Що прибирається**
+
+| Таблиця | Куди |
+|---------|------|
+| `admins`, `users` | `accounts` + `memberships` |
+| `user_passwords` | паролі — у Keycloak |
+| `user_session` | `accounts.language` |
+| `hardware_lock`, `users.is_online`, `active_session_id`, `two_factor_secret`, `refresh_token`, `password_reset_token`, `google_sub`, `invitation_token` | Keycloak або не потрібні (D83) |
+
+**Посилання, що змінюються**
+
+| Зараз | Стає |
+|-------|------|
+| `approvals.decided_by_admin_id` | `decided_by_account_id` |
+| `admin_notifications.recipient_admin_id` | `recipient_account_id` + **`organization_id`** — акаунт може бути в кількох організаціях |
+| `notifications.user_id` | `account_id` + **`organization_id`** — те саме |
+| `user_license.user_id` (місце в ліцензії) | `membership_id` — місце займає членство в організації |
+| **усі** спроєктовані `*_user_id` і `*_admin_id` у кроках 1–13 (`created_by_user_id`, `owner_user_id`, `requested_by_user_id`, `approved_by_admin_id`…) | `*_account_id` → `accounts` |
+| `robot_access.user_id` (крок 5) | `account_id` |
+
+### БД Studio-back
+
+| Таблиця | Що |
+|---------|----|
+| `outbox`, `inbox` | як в оркестраторі |
+| `organization_counters` | лічильники номерів: `organization_id` (ключ), `next_robot_number`, `next_component_number`, `next_process_number` (D62, D65, D68). Потрібна з фази 1 |
+| **`accounts`, `memberships` — копія** | лише потрібне для прав: `accounts(id, keycloak_sub, display_name)`, `memberships(account_id, organization_id, role, status)`. Оновлюється подіями оркестратора `orchestrator.account.upserted`, `orchestrator.membership.upserted` / `removed` |
+
+**Чому копія.** Studio-back перевіряє права за роллю (D56), а членство живе в
+оркестраторі. Питати оркестратор на кожен запит — означає, що Studio не працює,
+коли оркестратор лежить, а це суперечить D68. Копія відстає від оркестратора на
+секунди: зміна ролі дійде з подією.
+
+### Відкрито — вирішити при узгодженні
+
+- **Перемикачі «Automation defaults»** з налаштувань адміна (`auto_retry`,
+  `health_scoring`, `warn_destructive`, `allow_long_running`): у ТЗ їх немає,
+  питання відкрите з [20-policies.md](20-policies.md). У `accounts` не
+  переносимо, доки не вирішено: налаштування людини чи політика організації.
+
+---
+
 ## Підсумок: як усе зв'язано
 
 > Оновлено під ТЗ 2026-09-17: `jobs` → `executions`, `published_version_id` →
