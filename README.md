@@ -17,14 +17,18 @@
 ## Проєкти
 
 Словник назв у чатах: **десктоп** → `Tekra-Desktop/`; **оркестратор** →
-`Tekra-Orchester/`; **фронтенд** / **оркестратор фейс** / **фейс** / **Angular**
-→ `Tekra-Orchester-Face/`. Повна таблиця — в [`AGENTS.md`](AGENTS.md).
+`Tekra-Orchester/`; **оркестратор фейс** / **фейс** → `Tekra-Orchester-Face/`;
+**студія фронт** → `Tekra-Studio-front/`; **студія бек** → `Tekra-Studio-back/`.
+Фронтів два — «фронт» без уточнення двозначний. Повна таблиця — в
+[`AGENTS.md`](AGENTS.md).
 
 | Репозиторій | Документація для агентів |
 |-------------|--------------------------|
 | `Tekra-Orchester` | [docs/FOR-AGENTS.md](https://github.com/tekra007/Tekra-Orchester/blob/main/docs/FOR-AGENTS.md) |
 | `Tekra-Orchester-Face` | [docs/FOR-AGENTS.md](https://github.com/tekra007/Tekra-Orchester-Face/blob/main/docs/FOR-AGENTS.md) · еталон структури — [example-project-for-agents](https://github.com/tekra007/Tekra-Orchester-Face/tree/main/docs/example-project-for-agents) |
 | `Tekra-Desktop` | [docs/FOR-AGENTS.md](https://github.com/tekra007/Tekra-Desktop/blob/main/docs/FOR-AGENTS.md) |
+| `Tekra-Studio-front` | ще порожній — `docs/FOR-AGENTS.md` зʼявиться з каркасом (фаза 0) |
+| `Tekra-Studio-back` | ще порожній — `docs/FOR-AGENTS.md` зʼявиться з каркасом (фаза 0) |
 
 ## Проєктування
 

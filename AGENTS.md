@@ -11,7 +11,9 @@
 | Проєкт | Призначення | Технології (орієнтир) |
 |--------|-------------|------------------------|
 | `Tekra-Orchester/` | API та серверна логіка | Python, FastAPI, Redis, Alembic, WebSocket |
-| `Tekra-Orchester-Face/` | Веб-клієнт до API | Angular 18+, TypeScript |
+| `Tekra-Orchester-Face/` | Адмін-панель оркестратора (веб) | Angular 18+, TypeScript |
+| `Tekra-Studio-front/` | Застосунок розробника Studio (веб) | Angular, у стилі Face |
+| `Tekra-Studio-back/` | Сервіс Studio | Python, FastAPI — як оркестратор |
 | `Tekra-Desktop/` | Десктоп-клієнт | Python, PyQt, WebSocket-клієнт |
 
 ### Словник у розмовах (що мають на увазі агенти)
@@ -22,7 +24,12 @@
 |-----------|------------------|
 | **десктоп**, desktop | `Tekra-Desktop/` |
 | **оркестратор**, orchestrator | `Tekra-Orchester/` |
-| **фронтенд**, frontend, **оркестратор фейс**, orchestrator face, **фейс**, face, **Angular**, angular | `Tekra-Orchester-Face/` |
+| **оркестратор фейс**, orchestrator face, **фейс**, face | `Tekra-Orchester-Face/` |
+| **студія фронт**, studio front, **фронт студії** | `Tekra-Studio-front/` |
+| **студія бек**, studio back, **бек студії** | `Tekra-Studio-back/` |
+
+**Фронтів два**, обидва на Angular. «Фронтенд», «фронт», «Angular» без уточнення
+— двозначно: **спитати**, який саме, перед зміною коду.
 
 Якщо формулювання двозначне — уточнити в людини перед зміною коду.
 
@@ -77,6 +84,8 @@
 
 **Tekra-Orchester-Face працює у зв'язці з реальним `Tekra-Orchester` (live backend).** Це не прототип з моками — backend піднятий, фронт активно використовує його endpoints.
 
+**Те саме правило — для `Tekra-Studio-front`:** він працює з реальними `Tekra-Studio-back` і `Tekra-Orchester`. Новий endpoint — спершу на відповідному бекенді, потім у фронті.
+
 **Без явного дозволу замовника заборонено:**
 - залишати в проді **mock-respons-и** в коді фронту (`return of(fakeData)`, `setTimeout(() => …)` як заміна HTTP-виклику);
 - хардкодити дані, які мають приходити з API (профілі, списки, налаштування) — без явного маркера `// TODO: replace with API call to <endpoint>`;
@@ -120,7 +129,7 @@
 
 ## 8. Тестування й якість
 
-- Після змін у відповідному проєкті варто прогнати релевантні перевірки (наприклад, `pytest` у Orchester, `ng test` / лінтер у Face — коли з’являться у `docs` конкретні команди).
+- Після змін у відповідному проєкті варто прогнати релевантні перевірки (наприклад, `pytest` в Orchester і Studio-back, `ng test` / лінтер у Face і Studio-front — коли з’являться у `docs` конкретні команди).
 - Не «ламати» існуючі публічні контракти API без оновлення клієнтів і нотатки в PR.
 
 ## 9. Два AI-агенти (Cursor і Claude Code)
