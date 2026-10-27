@@ -27,8 +27,8 @@
 | `Tekra-Orchester` | [docs/FOR-AGENTS.md](https://github.com/tekra007/Tekra-Orchester/blob/main/docs/FOR-AGENTS.md) |
 | `Tekra-Orchester-Face` | [docs/FOR-AGENTS.md](https://github.com/tekra007/Tekra-Orchester-Face/blob/main/docs/FOR-AGENTS.md) · еталон структури — [example-project-for-agents](https://github.com/tekra007/Tekra-Orchester-Face/tree/main/docs/example-project-for-agents) |
 | `Tekra-Desktop` | [docs/FOR-AGENTS.md](https://github.com/tekra007/Tekra-Desktop/blob/main/docs/FOR-AGENTS.md) |
-| `Tekra-Studio-front` | ще порожній — `docs/FOR-AGENTS.md` зʼявиться з каркасом (фаза 0) |
-| `Tekra-Studio-back` | ще порожній — `docs/FOR-AGENTS.md` зʼявиться з каркасом (фаза 0) |
+| `Tekra-Studio-front` | [docs/FOR-AGENTS.md](https://github.com/tekra007/Tekra-Studio-front/blob/main/docs/FOR-AGENTS.md) |
+| `Tekra-Studio-back` | [docs/FOR-AGENTS.md](https://github.com/tekra007/Tekra-Studio-back/blob/main/docs/FOR-AGENTS.md) |
 
 ## Проєктування
 

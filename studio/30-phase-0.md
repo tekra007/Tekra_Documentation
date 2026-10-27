@@ -37,9 +37,9 @@
 
 | ID | Що | Де | Залежить | Схема | Готово, коли |
 |----|----|----|----------|-------|--------------|
-| **A1** | **CI** на кожен push і PR: лінтери й тести | Orchester, Face, Desktop, обидва Studio | — | — | у кожному репо workflow запускає: Python — `ruff check`, `black --check`, `pytest`; Angular — `lint`, `format:check`, перевірка типів, `build`, тести. Червоний — не мержимо |
+| **A1** 🟡 | **CI** на кожен push і PR: лінтери й тести. 2026-10-27: Orchester, Face, Desktop — ✅ (`.github/workflows/ci.yml`); Studio-back — ✅ з C1; Studio-front — ✅ з C2 | Orchester, Face, Desktop, обидва Studio | — | — | у кожному репо workflow запускає: Python — `ruff check`, `black --check`, `pytest`; Angular — `lint`, `format:check`, перевірка типів, `build`, тести. Червоний — не мержимо |
 | **A2** | **Тести з реальною Postgres** в оркестраторі: окрема тестова БД, міграції до голови, транзакція на тест | Orchester | — | — | є фікстура реальної БД; приклад тесту репозиторію проходить локально й у CI; моки лишаються для юніт-тестів |
-| **A3** | **`docker-compose`**: RabbitMQ (з вебпанеллю лише в мережі), Keycloak, Studio-back і його БД поруч з наявними `api`, `postgres`, `redis` | Orchester (або окремий репо розгортання) | — | — | `docker compose up` піднімає все; healthcheck кожного сервісу зелений; паролі — лише з `.env`, не в репо |
+| **A3** ✅ | **`docker-compose`** (2026-10-27: RabbitMQ 4.4, Keycloak 26.8.1, Postgres 18, Redis 7.4; перевірено на ізольованому стеку; Studio-back — з C1): RabbitMQ (з вебпанеллю лише в мережі), Keycloak, Studio-back і його БД поруч з наявними `api`, `postgres`, `redis` | Orchester (або окремий репо розгортання) | — | — | `docker compose up` піднімає все; healthcheck кожного сервісу зелений; паролі — лише з `.env`, не в репо |
 
 ### B. Швидкі виправлення безпеки (оркестратор)
 
@@ -59,9 +59,9 @@
 
 | ID | Що | Де | Залежить | Готово, коли |
 |----|----|----|----------|--------------|
-| **C1** | **Каркас Studio-back**: FastAPI, SQLAlchemy async, Alembic, Pydantic, налаштування, UoW і базовий репозиторій за зразком оркестратора, healthcheck, ruff / black / pytest, `docs/FOR-AGENTS.md` | `Tekra-Studio-back` | A1 | сервіс стартує в compose, healthcheck зелений, міграції працюють, CI зелений |
-| **C2** | **Каркас Studio-front**: Angular тієї ж версії, що Face; структура й правила Face (типи, константи, утиліти — у своїх теках); дизайн-токени й шрифт скопійовані; lint, prettier, тести; `docs/FOR-AGENTS.md` | `Tekra-Studio-front` | A1 | збирається; порожня оболонка з навігацією в стилі Face; адреса API — з `config.json` (C3); деплой на Vercel на окремому домені |
-| **C3** | **Адреса API під час запуску**: `config.json`, що читається при старті, замість вшитої при збірці | Face, Studio-front | — | одна збірка працює з різними адресами — змінюється лише `config.json`; Vercel і статичний хостинг клієнта підтримано |
+| **C1** ✅ | **Каркас Studio-back** (2026-10-27; перевірено в ізольованому стеку: health, `/health/postgres`, CORS, `alembic check`, healthcheck): FastAPI, SQLAlchemy async, Alembic, Pydantic, налаштування, UoW і базовий репозиторій за зразком оркестратора, healthcheck, ruff / black / pytest, `docs/FOR-AGENTS.md` | `Tekra-Studio-back` | A1 | сервіс стартує в compose, healthcheck зелений, міграції працюють, CI зелений |
+| **C2** ✅ | **Каркас Studio-front** (2026-10-27; Angular 18.2.10 як у Face, порт 4300; перевірено: lint, Prettier, типи, 4 юніт-тести, збірка, рендер у headless Chrome): Angular тієї ж версії, що Face; структура й правила Face (типи, константи, утиліти — у своїх теках); дизайн-токени й шрифт скопійовані; lint, prettier, тести; `docs/FOR-AGENTS.md` | `Tekra-Studio-front` | A1 | збирається; порожня оболонка з навігацією в стилі Face; адреса API — з `config.json` (C3); деплой на Vercel на окремому домені |
+| **C3** 🟡 | **Адреса API під час запуску** (Studio-front ✅ з C2 — `public/config.json`; Face — ще ні): `config.json`, що читається при старті, замість вшитої при збірці | Face, Studio-front | — | одна збірка працює з різними адресами — змінюється лише `config.json`; Vercel і статичний хостинг клієнта підтримано |
 
 ### D. Брокер
 
