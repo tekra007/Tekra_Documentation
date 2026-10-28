@@ -54,6 +54,7 @@
 | 27 | [27-partial-runs.md](27-partial-runs.md) | Тестування частин версії: точки зупинки, запуск виділеного |
 | 28 | [28-studio-service.md](28-studio-service.md) | Studio — окремий сервіс: хто з ким говорить, що де живе, брокер |
 | 31 | [31-identity-keycloak.md](31-identity-keycloak.md) | Ідентичність і Keycloak — дизайн E0, затверджено (D83) |
+| 32 | [32-messaging-explained.md](32-messaging-explained.md) | Брокер, outbox / inbox, FastStream і RabbitMQ — простими словами |
 | 30 | [30-phase-0.md](30-phase-0.md) | Фаза 0 — задачі з критеріями готовності й порядком |
 | 29 | [29-deployment-model.md](29-deployment-model.md) | Модель розгортання (Free shared / Paid isolated / Marketplace) — **затверджено** (D74); розбір і оцінка впливу |
 
