@@ -148,6 +148,7 @@
 | D82 | Фронт Studio | ✅ свій застосунок `Tekra-Studio-front`; бек — `Tekra-Studio-back`; Face — адмін-панель |
 | D83 | Ідентичність — деталі | ✅ членство й ролі в нашій БД; TOTP/WebAuthn; вхід Assistant через браузер |
 | D84 | Схема фази 0 | ✅ акаунти й членство, outbox/inbox, ключі організацій; копія членств у Studio-back |
+| D85 | RabbitMQ і Keycloak на Render | ✅ окремі сервіси з Docker-образами |
 | D14 | Співіснування старих ZIP-роботів | ✅ ні, тільки DSL |
 | D15 | Окремі репозиторії під Studio | ✅ змінено D31: бекенд — `Tekra-Studio-back` (створимо пізніше) |
 | D16 | Де зберігати документацію | ✅ репо `Tekra_Documentation` |
