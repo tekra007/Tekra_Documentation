@@ -121,6 +121,27 @@
 | **Execution** | `EXECUTION_REQUESTED`, `EXECUTION_BLOCKED`, `EXECUTION_QUEUED`, `EXECUTION_STARTED`, `EXECUTION_PAUSED`, `EXECUTION_COMPLETED`, `EXECUTION_FAILED`, `EXECUTION_CANCELLED`, **+** `EXECUTION_RESUMED` |
 | **Policy** | `POLICY_CREATED`, `POLICY_CHANGED`, `POLICY_ACTIVATED`, `POLICY_DEACTIVATED` |
 
+Доповнення фази 0 (G1) — люди й організації, у ТЗ їх немає:
+
+| Група | Дії |
+|-------|-----|
+| **Account** | **+** `ACCOUNT_CREATED`, **+** `ACCOUNT_SIGNED_IN` |
+| **Organization** | **+** `ORGANIZATION_UPDATED`, **+** `ORGANIZATION_RESET`, **+** `ORGANIZATION_DELETED` |
+| **Member** | **+** `MEMBER_INVITED`, **+** `MEMBER_JOINED`, **+** `MEMBER_ROLE_CHANGED`, **+** `MEMBER_STATUS_CHANGED`, **+** `MEMBER_UPDATED`, **+** `MEMBER_REMOVED` |
+
+У коді enum містить лише вже записувані дії; решта переліку додається міграцією
+разом зі своєю фічею.
+
+**Вхід (2026-10-30).** Сам логін відбувається в Keycloak, тому оркестратор
+впізнає новий вхід за `auth_time` у токені: час новіший за
+`accounts.last_login_at` — записати рядок. Refresh і SSO цей час не змінюють,
+паралельні запити дають один рядок завдяки атомарному `UPDATE`.
+
+- Один рядок на кожну організацію, де людина — активний учасник: адмін бачить
+  входи своїх людей у своєму журналі.
+- Немає жодного активного членства — один рядок з `NO_ORGANIZATION`.
+- Невдалі спроби входу лишаються лише в подіях Keycloak.
+
 Чому доповнення:
 
 | Дія | Чому потрібна |
