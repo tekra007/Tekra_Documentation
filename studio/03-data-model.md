@@ -289,7 +289,7 @@ ZIP-архівом. Але за D1 робот — це JSON, і важить к�
 | `machine_id` | FK → machines | на якій машині. **Один Assistant на машину** — базова модель |
 | `allowed_environments` | масив enum | `TEST` / `PROD` — де можна виконувати; змінює адмін. Замінює призначення машини з D70 |
 | `agent_version` | str, nullable | версія програми (D2) |
-| `protocol_version` | str, nullable | версія протоколу з оркестратором — для оновлень deployment окремо від ПК (D74) |
+| `protocol_version` | int, nullable | версія протоколу з оркестратором — для оновлень deployment окремо від ПК (D74); ціле, як у I1 |
 | `capabilities` | JSONB | які провайдери вміє (D17) |
 | `last_seen_at` | timestamp | коли востаннє озивався |
 
@@ -1088,6 +1088,146 @@ ID (`robot_number`) сам читабельний і не змінюється (
 
 ---
 
+## Крок 15. Фаза 1: тонка нитка (J1)
+
+> Погоджено 2026-11-06 разом із планом [33-phase-1.md](33-phase-1.md). Таблиці
+> кроків 1–3 у тому обсязі, який потрібен тонкій нитці; решта полів — у своїх
+> фазах (позначено). Люди — `*_account_id` → `accounts` (D83). Кожна таблиця з
+> `organization_id` — під row level security (F2), як решта.
+
+### БД оркестратора
+
+**`robots`** — реєстр (крок 1). **Замінює стару zip-таблицю `robots`** разом із
+`robot_kpi` (D88): прод-даних немає, стара модель зникає повністю (D14).
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `id` | UUID, ключ | приходить зі Studio (D68) |
+| `organization_id` | FK → organizations, cascade | |
+| `number` | int | Robot ID зі Studio; `UNIQUE (organization_id, number)` |
+| `name` | str | копія. **Унікальність не перевіряється** — її тримає Studio; у копії обмін назвами двох роботів пройшов би через проміжний конфлікт |
+| `description` | text, nullable | |
+| `owner_account_id` | FK → accounts, set null, nullable | |
+| `created_by_account_id` | FK → accounts, set null, nullable | автор із події (`actor_user_id`) |
+| `updated_by_account_id` | FK → accounts, set null, nullable | |
+| `lifecycle` | enum `DRAFT` / `TEST` / `PROD` / `ARCHIVED`, за замовчуванням `DRAFT` | |
+| `availability` | enum `ENABLED` / `DISABLED` / `SUSPENDED`, за замовчуванням `ENABLED` | перевірки №7–8; змінювати — фаза 5 (D50) |
+| `availability_reason` | text, nullable | |
+
+Пізніше: `health` (фаза 5, D52), `active_production_version_number` (фаза 6, D40).
+
+**`robot_versions`** — копія версії зі Studio, з неї виконують (крок 1, D61, D64)
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `robot_id` + `number` | ключ | `robot_id` → robots, cascade |
+| `organization_id` | FK → organizations, cascade | для RLS і фільтрів |
+| `definition` | JSONB | повний знімок |
+| `definition_hash` | str(64) | оркестратор **перераховує сам** при реєстрації (28) |
+| `change_description` | text, nullable | |
+| `min_assistant_version` | str, nullable | перевірка №12 |
+| `release_state` | enum `DRAFT` / `TESTING` / `RELEASED` / `SUPERSEDED` / `REJECTED`, за замовчуванням `DRAFT` | перший TEST-запуск → `TESTING` (D39) |
+| `authorization` | enum `NOT_REQUIRED` / `PENDING_APPROVAL` / `APPROVED` / `REJECTED` / `REVOKED` / `EXPIRED`, nullable | порожньо, доки версію не подали в PROD (18) |
+| `created_by_account_id` | FK → accounts, set null, nullable | |
+
+Пізніше: `released_by_account_id`, `released_at` (фаза 6).
+
+**`organization_counters`** — номери машин і Assistant (як D62, без повторного
+використання): `organization_id` (ключ), `next_machine_number`,
+`next_assistant_number`.
+
+**`machines`** (крок 2, D76, D77)
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `id` | UUID | |
+| `organization_id` | FK → organizations, cascade | |
+| `number` | int | `MACHINE-27`; `UNIQUE (organization_id, number)` |
+| `machine_guid` | str | `MachineGuid` Windows; `UNIQUE (organization_id, machine_guid)` |
+| `name` | str | ім'я ПК |
+| `os` | str, nullable | |
+
+**`assistants`** (крок 2, D76)
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `id` | UUID | |
+| `organization_id` | FK → organizations, cascade | |
+| `number` | int | `ASSISTANT-104`; `UNIQUE (organization_id, number)` |
+| `assistant_key` | UUID | UUID встановлення (D9); `UNIQUE (organization_id, assistant_key)` |
+| `machine_id` | FK → machines, cascade | |
+| `allowed_environments` | масив `TEST` / `PROD`, за замовчуванням `{TEST}` | нова установка — лише TEST; PROD вмикає адмін (D76) |
+| `agent_version` | str, nullable | |
+| `protocol_version` | int, nullable | як у I1 |
+| `capabilities` | JSONB, за замовчуванням `[]` | провайдери, які вміє (D17) |
+| `signed_in_account_id` | FK → accounts, set null, nullable | хто зараз увійшов в Assistant: TEST — лише на своїй машині (D89) |
+| `last_seen_at` | timestamp, nullable | |
+
+`assistant_enrollment_tokens.assistant_id` отримує FK → `assistants`, set null.
+
+**`executions`** (крок 3)
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `id` | UUID | Execution ID |
+| `organization_id` | FK → organizations, cascade | |
+| `robot_id` + `version_number` | FK → robot_versions, cascade | що виконуємо (D61) |
+| `lifecycle` | enum `TEST` / `PROD` | у фазі 1 — лише TEST |
+| `machine_id` | FK → machines, cascade | де; черга — по машині (D47) |
+| `assistant_id` | FK → assistants, set null, nullable | хто виконав — ставиться при відправці |
+| `status` | enum `QUEUED` / `RUNNING` / `PAUSED` / `COMPLETED` / `FAILED` / `CANCELLED` / `BLOCKED` | D35 |
+| `block_reason` | text, nullable | |
+| `source` | enum `MANUAL` / `SCHEDULE` | |
+| `requested_by_account_id` | FK → accounts, set null, nullable | |
+| `requested_at` | timestamp | |
+| `queue_expires_at` | timestamp, nullable | ручний запуск — +5 хв (D48) |
+| `dispatched_at`, `delivered_at`, `last_event_at`, `started_at`, `finished_at` | timestamp, nullable | D35, D51 |
+| `result` | JSONB, nullable | |
+| `error` | text, nullable | |
+| `steps_total`, `steps_done`, `errors_count` | int, nullable | D13 |
+
+Пізніше: `input` (D22), `scope` (D66), `replaced_execution_id` (D72).
+Індекси: `(machine_id, status)` — черга машини; `(organization_id, requested_at)`.
+
+**`execution_logs`** (крок 3, D12)
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `id` | bigint, послідовний | |
+| `organization_id` | FK → organizations, cascade | для RLS |
+| `execution_id` | FK → executions, cascade | |
+| `seq` | int | порядок; `UNIQUE (execution_id, seq)` — повторно досланий після обриву лог не дублюється (D51) |
+| `step_id` | str, nullable | |
+| `level` | enum `INFO` / `WARN` / `ERROR` | |
+| `message` | text | |
+| `occurred_at` | timestamp | час на машині |
+| `payload` | JSONB, nullable | |
+
+### БД Studio-back
+
+**`robots`** — картка й робоча копія
+
+| Поле | Тип | Навіщо |
+|------|-----|--------|
+| `id` | UUID | видає Studio |
+| `organization_id` | UUID | копії `organizations` у Studio немає — без FK |
+| `number` | int | з лічильника; `UNIQUE (organization_id, number)` |
+| `name` | str | `UNIQUE (organization_id, name)` |
+| `description` | text, nullable | |
+| `owner_account_id`, `created_by_account_id`, `updated_by_account_id` | UUID, nullable | без FK: копія акаунтів може відставати на секунди |
+| `working_copy` | JSONB, nullable | D34 |
+| `working_copy_base_number` | int, nullable | D63 |
+
+**`robot_versions`**: ключ `(robot_id, number)`; `organization_id`; `definition`
+(JSONB); `definition_hash`; `change_description`; `min_assistant_version`;
+`created_by_account_id`; `registered_at` (timestamp, nullable) — коли прийшла
+подія `registered` (D68).
+
+**`organization_counters`**: `organization_id` (ключ), `next_robot_number`. Номери
+компонентів і процесів — колонками у фазі 8.
+
+---
+
 ## Підсумок: як усе зв'язано
 
 > Оновлено під ТЗ 2026-09-17: `jobs` → `executions`, `published_version_id` →
@@ -1155,5 +1295,5 @@ ID (`robot_number`) сам читабельний і не змінюється (
 
 Усі сутності ТЗ описано — кроки 1–13.
 
-> Це чернетка для узгодження, а не готова схема. Міграції створює людина
-> (див. `AGENTS.md`, розділ 7).
+> Це чернетка для узгодження, а не готова схема. Міграції пише агент, людина
+> перевіряє й комітить (див. `AGENTS.md`, розділ 7, змінено 2026-10-23).

@@ -54,7 +54,7 @@ Studio-front. Адреси API фронти читають під час зап�
 
 | Метод | Шлях | Що робить |
 |-------|------|-----------|
-| `POST` | `/robots` | створити: `{ name, description, owner_user_id }` → `{ id, number }`. Номер видає Studio (D68) |
+| `POST` | `/robots` | створити: `{ name, description, owner_account_id }` → `{ id, number }`. Номер видає Studio (D68) |
 | `PATCH` | `/robots/{id}` | назва, опис, власник |
 | `GET` | `/robots/{id}/working-copy` | робоча копія + від якої версії відкрита (`working_copy_base_number`) |
 | `PUT` | `/robots/{id}/working-copy` | зберегти робочу копію — це **ще не версія** (D34) |

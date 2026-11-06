@@ -56,6 +56,7 @@
 | 31 | [31-identity-keycloak.md](31-identity-keycloak.md) | Ідентичність і Keycloak — дизайн E0, затверджено (D83) |
 | 32 | [32-messaging-explained.md](32-messaging-explained.md) | Брокер, outbox / inbox, FastStream і RabbitMQ — простими словами |
 | 30 | [30-phase-0.md](30-phase-0.md) | Фаза 0 — задачі з критеріями готовності й порядком |
+| 33 | [33-phase-1.md](33-phase-1.md) | Фаза 1 — тонка нитка: задачі, порядок, відкриті питання |
 | 29 | [29-deployment-model.md](29-deployment-model.md) | Модель розгортання (Free shared / Paid isolated / Marketplace) — **затверджено** (D74); розбір і оцінка впливу |
 
 Далі з'являться: формат DSL, модель даних, WS-протокол, MVP-скоуп.
