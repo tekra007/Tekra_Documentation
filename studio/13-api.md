@@ -66,7 +66,7 @@ Studio-front. Адреси API фронти читають під час зап�
 
 | Метод | Шлях | Що робить |
 |-------|------|-----------|
-| `POST` | `/robots/{id}/versions` | **«Зберегти»**: якщо `definition` змінився — нова версія; ні — повертає наявну (D34). → `{ number, registered }`. Оркестратор не чекає (D68) |
+| `POST` | `/robots/{id}/versions` | **«Зберегти»** з робочої копії: якщо `definition` змінився — нова версія, **201**; ні — повертає наявну, **200** (D34). → `{ number, registered, created }`. Сценарій не за форматом — **422** `{ detail, errors }`; копія порожня — 400. Оркестратор не чекає (D68) |
 | `GET` | `/robots/{id}/versions` | список: номер, автор, дата, опис змін, `registered` |
 | `GET` | `/robots/{id}/versions/{number}` | версія з повним `definition` |
 | `PATCH` | `/robots/{id}/versions/{number}` | лише `change_description` (`VERSION_EDIT`); сама версія незмінна |
