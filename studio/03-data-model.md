@@ -1030,6 +1030,7 @@ ID (`robot_number`) сам читабельний і не змінюється (
 |------|-----|--------|
 | `id` | UUID | |
 | `organization_id` | FK → organizations | |
+| `membership_id` | FK → memberships, cascade | кому видано (D87): посилання спрацьовує лише для цієї людини; зникає разом із членством |
 | `token_hash` | str | у БД лише хеш — сам токен адмін бачить один раз |
 | `allowed_environments` | масив enum | з якими середовищами зареєструється Assistant (D76) |
 | `created_by_account_id` | FK → accounts | |
