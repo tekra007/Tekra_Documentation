@@ -193,6 +193,138 @@ Studio показує це трьома полями, юзер нічого не
   пробілів, UTF-8; одна функція в `contracts` для обох сервісів (28, «Цілісність
   версії»).
 
+## Формат фази 2 — логіка й повний `desktop-uia` (P1)
+
+> 2026-11-07, рішення — [34-phase-2.md](34-phase-2.md), «Відкриті питання». Формат
+> фази 1 лишається валідним: це той самий формат без вкладених блоків.
+
+### Вкладені блоки
+
+Крок може мати списки кроків — **лише** у своєї активності:
+
+| Активність | Блоки | Обовʼязкові |
+|-----------|-------|-------------|
+| `flow/If` | `then`, `else` | `then` |
+| `flow/ForEach` | `body` | `body` |
+| `flow/TryCatch` | `try`, `catch` | `try` |
+
+- `id` кроків унікальні **в усьому дереві**; `inputs.target` перевіряється на будь-якій
+  глибині. Блок у чужої активності (`then` у `Click`) — сценарій невалідний.
+- Глибина вкладеності — не більше `DEFINITION_MAX_DEPTH` (16) рівнів.
+- Порожній блок дозволено (`"else": []`).
+
+### Змінні й шаблони (D6b)
+
+- Ім'я змінної — `[A-Za-z_][A-Za-z0-9_]*`. Змінна з'являється з `output` кроку,
+  `itemVar` циклу (лише в його тілі) і `errorVar` у `catch`.
+- Шаблони підставляються в **усі рядкові входи** (і в рядки всередині списків /
+  обʼєктів), крім назв змінних (`itemVar`, `errorVar`). `target` — **статичний**
+  ключ бібліотеки елементів, не шаблон (D21: видно, які кроки зачепить зміна
+  елемента; сценарій із невідомим ключем невалідний ще до запуску).
+- Значення **цілком** `"{{rows}}"` — сама змінна **з її типом** (список, обʼєкт,
+  число). Шаблон **у тексті** `"звіт_{{n}}.txt"` — рядок: рядкові значення як є,
+  решта — як JSON (`1000`, `true`, `null`, `[1,2]`).
+- `{{row.amount}}` — поле обʼєкта, `{{rows.0}}` — елемент списку за індексом.
+- **Невідома змінна, поле чи індекс — помилка кроку** з назвою. Екранування `{{`
+  у фазі 2 немає.
+
+### Числа в умовах
+
+Рядок вважається числом, якщо після видалення пробілів (звичайних і
+нерозривних — так 1С показує `1 000,50`) він є числом; кома — десяткова, якщо
+крапки немає. `true` / `false` числами не є.
+
+### Активності фази 2
+
+Спільне для активностей `desktop-uia` з `target`: необовʼязковий `timeout` —
+секунди очікування елемента (типово 10, не більше 600).
+
+| Активність | `inputs` | `output` |
+|-----------|----------|----------|
+| `flow/SetVariable` | `value` — будь-яке JSON-значення або шаблон | **обовʼязковий** — ім'я змінної |
+| `flow/If` | `left`, `operator`, `right` (немає для `is_empty` / `is_not_empty`) | — |
+| `flow/ForEach` | `items` — список (зазвичай `"{{rows}}"`), `itemVar` — ім'я змінної елемента | — |
+| `flow/TryCatch` | `errorVar` — куди покласти текст помилки (типово `error`) | — |
+| `flow/Delay` | `seconds` — число, не більше 3600 | — |
+| `flow/Log` | `message`; `level` — `INFO` (типово) / `WARN` / `ERROR` | — |
+| `desktop-uia/AttachWindow` | `target` — елемент, чий шлях — саме вікно; дочекатися, розгорнути, вивести на передній план | — |
+| `desktop-uia/Click` | `target` | — |
+| `desktop-uia/TypeText` | `target`, `text`; `clear` — спершу очистити (типово `true`) | — |
+| `desktop-uia/GetText` | `target` | текст елемента |
+| `desktop-uia/SelectItem` | `target` (список / випадайка), `item` — текст пункту | — |
+| `desktop-uia/WaitForElement` | `target`; `state` — `appears` (типово) / `disappears` | — |
+| `desktop-uia/PressKeys` | `keys` — список комбінацій, напр. `["Ctrl+S", "Enter"]`; `target` — необовʼязково: спершу дати йому фокус | — |
+
+**Оператори `flow/If`:** `equals` / `not_equals` — числа як числа, інакше як текст;
+`greater_than` / `less_than` — лише числа (інакше помилка кроку); `contains` —
+підрядок, а для списку — чи є такий елемент; `is_empty` / `is_not_empty` —
+відсутнє значення (`null`), порожній або з одних пробілів рядок, порожній
+список / обʼєкт.
+
+**Клавіші `PressKeys`:** комбінація — назви через `+`, без пробілів, регістр не
+важливий: `Ctrl`, `Alt`, `Shift`, `Win` + одна клавіша: `A`–`Z`, `0`–`9`,
+`F1`–`F12`, `Enter`, `Tab`, `Esc`, `Space`, `Backspace`, `Delete`, `Insert`,
+`Home`, `End`, `PageUp`, `PageDown`, `Up`, `Down`, `Left`, `Right`.
+
+**`desktop-uia/Screenshot`** — у фазі 3, разом зі сховищем знімків.
+
+### Помилки, `TryCatch` і лічильники
+
+- Помилка кроку в `try` → рядок `WARN` «Step s7 failed, handled by s4: …», текст — у
+  змінній `errorVar`, далі виконується `catch`, потім — крок після `TryCatch`.
+  Запуск, де всі помилки зловлено, — `COMPLETED`.
+- Помилка поза `try` (або в `catch`) — `ERROR` і `FAILED`, як у фазі 1. Стоп
+  (Assistant закривається) `TryCatch` не ловить — `CANCELLED`.
+- `flow/Log` з `level: ERROR` — рядок `ERROR` від автора сценарію; запуск не
+  зупиняє, але рахується в `errors_count`.
+- `steps_total` — кроків у дереві сценарію; `steps_done` — **різних** кроків, які
+  хоч раз завершились успішно.
+
+### Приклад — канонічний сценарій на Блокноті
+
+```json
+{
+  "steps": [
+    { "id": "s1", "activity": "flow/SetVariable",
+      "inputs": { "value": [ { "who": "Іван", "amount": "1 200,50" },
+                             { "who": "Марія", "amount": "300" } ] },
+      "output": "rows" },
+    { "id": "s2", "activity": "desktop-uia/AttachWindow", "inputs": { "target": "notepad" } },
+    { "id": "s3", "activity": "flow/ForEach",
+      "inputs": { "items": "{{rows}}", "itemVar": "row" },
+      "body": [
+        { "id": "s4", "activity": "flow/TryCatch",
+          "try": [
+            { "id": "s5", "activity": "desktop-uia/TypeText",
+              "inputs": { "target": "editor", "text": "{{row.who}}: {{row.amount}}\n", "clear": false } },
+            { "id": "s6", "activity": "flow/If",
+              "inputs": { "left": "{{row.amount}}", "operator": "greater_than", "right": "1000" },
+              "then": [
+                { "id": "s7", "activity": "flow/Log",
+                  "inputs": { "message": "Велика сума: {{row.who}}" } } ] }
+          ],
+          "catch": [
+            { "id": "s8", "activity": "flow/Log",
+              "inputs": { "level": "WARN", "message": "Не вийшло для {{row.who}}: {{error}}" } } ] }
+      ] },
+    { "id": "s9", "activity": "desktop-uia/GetText", "inputs": { "target": "editor" }, "output": "typed" },
+    { "id": "s10", "activity": "flow/Log", "inputs": { "message": "У Блокноті: {{typed}}" } }
+  ],
+  "elements": {
+    "notepad": { "strategies": [ { "kind": "uia", "path": [
+      { "control": "Window", "name": "*Notepad" } ] } ] },
+    "editor": { "strategies": [ { "kind": "uia", "path": [
+      { "control": "Window", "name": "*Notepad" },
+      { "control": "Document" } ] } ] }
+  }
+}
+```
+
+**`*` у `name`** (з фази 2): наприкінці — «починається з», на початку —
+«закінчується на» (заголовок вікна зазвичай `<документ> - <програма>`), з обох
+боків — «містить». Точні шляхи елементів Блокнота (Windows 10 — `Edit`,
+Windows 11 — `Document`) уточнюються в P4 на справжньому вікні.
+
 ## Відкриті питання
 
 - **D21** — селектори всередині кроків чи окремою бібліотекою елементів
