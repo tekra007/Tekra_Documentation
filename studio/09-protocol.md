@@ -58,6 +58,21 @@ Keycloak (D81).
 | версію зареєстровано | автору версії — щоб увімкнути «Запустити» (D68) |
 | сповіщення адмінам | як уже працює (`admin_notifications`) |
 
+Фаза 1 (L5, D90) — канал `/me/ws`:
+
+| Напрямок | Повідомлення | Вміст |
+|----------|--------------|-------|
+| → сервер | `subscribe_execution` / `unsubscribe_execution` | `execution_id`; дозволено, коли дозволено `GET /executions/{id}` |
+| ← сервер | `execution_subscribed` | `execution` — запуск як він є зараз |
+| ← сервер | `execution_updated` | `execution` — після кожної зміни (статус, часи доставки, результат) |
+| ← сервер | `execution_logs` | `execution_id`, `entries[]` — пачка, як надіслав Assistant (`ERROR` — одразу) |
+| ← сервер | `version_registered` | `robot_id`, `version_number` — лише автору версії |
+| ← сервер | `error` | `detail`, інколи `execution_id` |
+
+Події йдуть лише після коміту й між процесами — через fanout-обмін брокера
+(`orchestrator.browser`); доставка best effort: після (пере)підключення браузер
+підписується знову й дочитує стан і логи по HTTP (`after_seq`).
+
 ## Оркестратор ↔ десктоп
 
 ### Реєстрація Assistant і машини (D76, D77, D10)
@@ -109,6 +124,9 @@ Keycloak (D81).
 `execution_id`, `status`, `result`, `error`, `steps_total`, `steps_done`,
 `errors_count`. Звіт приймається лише від Assistant, якому запуск відправили.
 Не підтвердив за 60 с — `FAILED`, повторно не шлемо (міг отримати).
+Assistant шле звіти лише після `assistant/registered` на поточному з'єднанні
+(до нього оркестратор не знає, чий це Assistant); звіти незавершених запусків і
+останнього завершеного після нового входу шле ще раз (N2).
 
 - кожна подія від агента оновлює `last_event_at` — так помічаємо втрату
   звʼязку (D51);

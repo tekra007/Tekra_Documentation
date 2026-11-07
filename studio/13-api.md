@@ -156,6 +156,8 @@ TEST, машина — та, де автор зараз увійшов в Assist
 немає робота / версії (№1–3), 400 — автор не увійшов у жоден Assistant; відмови
 теж в аудиті. `GET /executions?robot_id&limit` (новіші першими), `/executions/{id}`,
 `/executions/{id}/logs?after_seq&limit`. Скасування й налагодження — пізніше.
+Наживо (L5): `/me/ws` — підписка на `execution_id`, події `execution_updated` /
+`execution_logs`, автору — `version_registered`; формат — [09-protocol.md](09-protocol.md).
 
 - `version_number` для **TEST** обовʼязковий — запускається конкретна
   зареєстрована версія (D68). Для **PROD** не передається: виконується Active
