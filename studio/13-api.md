@@ -149,6 +149,14 @@ Studio-front. Адреси API фронти читають під час зап�
 | `POST` | `/executions/{id}/cancel` | зупинити акуратно |
 | `POST` | `/executions/{id}/pause`, `/resume`, `/step` | налагодження в TEST (D66) |
 
+**Фаза 1 (L4, 2026-11-07):** `POST /executions { robot_id, version_number }` — лише
+TEST, машина — та, де автор зараз увійшов в Assistant (D89), тому `machine_id` і
+`lifecycle` не передаються. Відповідь 201 — запуск `QUEUED` (відправлений —
+`dispatched_at`) або `BLOCKED` з `block_reason`; 403 — роль не може TEST (№14), 404 —
+немає робота / версії (№1–3), 400 — автор не увійшов у жоден Assistant; відмови
+теж в аудиті. `GET /executions?robot_id&limit` (новіші першими), `/executions/{id}`,
+`/executions/{id}/logs?after_seq&limit`. Скасування й налагодження — пізніше.
+
 - `version_number` для **TEST** обовʼязковий — запускається конкретна
   зареєстрована версія (D68). Для **PROD** не передається: виконується Active
   Production Version (перевірка №5).

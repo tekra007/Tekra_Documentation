@@ -101,6 +101,15 @@ Keycloak (D81).
 | → агент | `EXECUTION_CANCEL` | зупинити акуратно — після поточного кроку |
 | → агент | `EXECUTION_TERMINATE` | обірвати негайно (D51) |
 
+У WS це `command: "execution"`, дії `assign` (→ агент) і `accepted` / `log` /
+`finished` (← агент) (L4). Фаза 1: `assign` — `execution_id`, `robot_id`,
+`robot_number`, `version_number`, `label` (`184.2`), `lifecycle`, `definition`;
+`log` — `execution_id`, `entries[]` (`seq`, `step_id`, `level` `INFO` / `WARN` /
+`ERROR`, `message`, `occurred_at`, `payload`), до 500 рядків; `finished` —
+`execution_id`, `status`, `result`, `error`, `steps_total`, `steps_done`,
+`errors_count`. Звіт приймається лише від Assistant, якому запуск відправили.
+Не підтвердив за 60 с — `FAILED`, повторно не шлемо (міг отримати).
+
 - кожна подія від агента оновлює `last_event_at` — так помічаємо втрату
   звʼязку (D51);
 - після відновлення звʼязку агент **досилає** накопичені логи й результат (D51);
