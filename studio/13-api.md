@@ -183,8 +183,8 @@ TEST, машина — та, де автор зараз увійшов в Assist
 
 | Метод | Шлях | Що робить |
 |-------|------|-----------|
-| `POST` | `/inspector-sessions` | `{ machine_id, provider }` → `session_id`; результат приходить по WS |
-| `DELETE` | `/inspector-sessions/{id}` | скасувати |
+| `POST` | `/inspector-sessions` | `{ provider }` (типово `desktop-uia`) → сесія (`id`, `assistant_id`, `status`, `expires_at`); машина — де розробник сам увійшов в Assistant (фаза 3); право `ROBOT_EDIT`; немає Assistant / не вміє провайдера / не на зв'язку — 400; результат приходить по `/me/ws` |
+| `DELETE` | `/inspector-sessions/{id}` | скасувати свою сесію — 204; Assistant отримує `inspector/cancel`; чужа — 404 |
 
 Оркестратор результат лише пересилає в браузер і не зберігає; браузер кладе
 елемент у робочу копію через Studio (D31).

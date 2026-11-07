@@ -1297,3 +1297,12 @@ ID (`robot_number`) сам читабельний і не змінюється (
 
 > Це чернетка для узгодження, а не готова схема. Міграції пише агент, людина
 > перевіряє й комітить (див. `AGENTS.md`, розділ 7, змінено 2026-10-23).
+
+## Крок 16 — сесії Inspector (фаза 3, 2026-11-08)
+
+`inspector_sessions` в оркестраторі ([35](35-phase-3.md)): `id`, `organization_id`
+(RLS), `account_id` (хто відкрив), `assistant_id`, `provider`, `status`
+(`OPEN` / `CAPTURED` / `FAILED` / `CANCELLED` / `EXPIRED`), `expires_at`,
+`finished_at`, `reason`. **Захоплений елемент не зберігається** (28): він іде в
+браузер власнику сесії й потрапляє в робочу копію Studio як `elements[key]`
+(`strategies`, `label`, `snapshot` — D7a).

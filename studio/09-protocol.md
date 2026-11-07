@@ -102,6 +102,14 @@ Keycloak (D81).
 | ← агент | `INSPECT_RESULT` | селектор, знімок захоплення (D7a), скріншот елемента. Оркестратор пересилає в браузер і не зберігає |
 | ← агент | `INSPECT_FAILED` | причина |
 
+У WS це `command: "inspector"` (фаза 3, [35](35-phase-3.md)): `start` —
+`session_id`, `provider`, `timeout_seconds`; `cancel` — `session_id`, `reason`;
+`result` — `session_id`, `element` (`strategies`, `label`, `snapshot` із
+`image` — PNG data URL); `failed` — `session_id`, `reason`. Відповідь приймається
+лише від Assistant сесії, лише поки вона відкрита; `element` перевіряється за
+контрактом (≤ 256 KiB). У браузер — `/me/ws` власнику сесії: `inspector_result`
+(`session_id`, `element`) або `inspector_failed` (`session_id`, `reason`).
+
 ### Виконання
 
 | Напрямок | Повідомлення | Вміст |
