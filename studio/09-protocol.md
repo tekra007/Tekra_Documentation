@@ -67,6 +67,10 @@ Keycloak (D81).
 | → сервер | `ASSISTANT_REGISTER` | `assistant_key`, `machine_guid`, `machine_name`, `os`, `agent_version`, `protocol_version`, `capabilities` |
 | ← сервер | `ASSISTANT_REGISTERED` | `assistant_id`, `machine_id`, номери `ASSISTANT-104` / `MACHINE-27`, дозволені середовища |
 
+У WS це `command: "assistant"`, `action: "register"` / `"registered"` (L3).
+Новий Assistant без посилання підключення отримує лише `TEST`; з посиланням — середовища,
+які адмін дозволив у ньому (D87).
+
 `protocol_version` — щоб оркестратор знав, чи підтримує цей Assistant (deployment
 оновлюються окремо від ПК, D74).
 
