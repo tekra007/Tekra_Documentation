@@ -136,7 +136,7 @@ Studio-front. Адреси API фронти читають під час зап�
 |-------|------|-----------|
 | `GET` | `/robots/{id}/access` | кому дозволено запускати в PROD |
 | `POST` | `/robots/{id}/access` | дати доступ юзеру |
-| `DELETE` | `/robots/{id}/access/{userId}` | забрати |
+| `DELETE` | `/robots/{id}/access/{accountId}` | забрати; черга цієї людини на робота → BLOCKED (6D) |
 
 ### Запуски
 

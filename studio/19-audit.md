@@ -118,6 +118,7 @@
 | **Authorization** | `AUTHORIZATION_REQUESTED`, `AUTHORIZATION_APPROVED`, `AUTHORIZATION_REJECTED`, `AUTHORIZATION_REVOKED`, `AUTHORIZATION_EXPIRED` |
 | **Test Period** | `TEST_PERIOD_CREATED`, `TEST_PERIOD_APPROVED`, `TEST_PERIOD_REVOKED`, `TEST_PERIOD_EXPIRED`, **+** `TEST_PERIOD_REJECTED`, **+** `TEST_PERIOD_CANCELLED` |
 | **Availability** | `ROBOT_ENABLED`, `ROBOT_DISABLED`, `ROBOT_SUSPENDED`, `ROBOT_RESUMED` |
+| **+ Доступ** | `ROBOT_ACCESS_GRANTED`, `ROBOT_ACCESS_REVOKED` (кому — у `new_state` / `previous_state`) |
 | **Execution** | `EXECUTION_REQUESTED`, `EXECUTION_BLOCKED`, `EXECUTION_QUEUED`, `EXECUTION_STARTED`, `EXECUTION_PAUSED`, `EXECUTION_COMPLETED`, `EXECUTION_FAILED`, `EXECUTION_CANCELLED`, **+** `EXECUTION_RESUMED`, **+** `EXECUTION_CANCEL_REQUESTED` (фаза 5: попросили зупинити відправлений запуск; актор — людина) |
 | **Policy** | `POLICY_CREATED`, `POLICY_CHANGED`, `POLICY_ACTIVATED`, `POLICY_DEACTIVATED` |
 
@@ -153,6 +154,7 @@
 | `VERSION_TESTING_STARTED` | за D39 версія переходить DRAFT → TESTING — це зміна стану |
 | `TEST_PERIOD_REJECTED` | за D37 у періоду є стан REJECTED, а ТЗ перелічує лише approve |
 | `ROBOT_RESTORED` | відновлення з архіву дозволене (D55) — окрема дія людини, не лише зміна lifecycle (39-phase-6, 6C) |
+| `ROBOT_ACCESS_GRANTED / REVOKED` | хто з Regular User може запускати робота — зміна прав, ТЗ про `robot_access` мовчить (39-phase-6, 6D) |
 | `TEST_PERIOD_CANCELLED` | розробник сам забрав свій запит (39-phase-6, 6B рішення 5) — це не відмова адміна |
 | `EXECUTION_RESUMED` | у ТЗ є пауза запуску, але немає продовження після неї |
 

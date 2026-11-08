@@ -619,9 +619,12 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 | Поле | Тип | Навіщо |
 |------|-----|--------|
 | `id` | UUID | |
-| `robot_id` | FK → robots | |
-| `user_id` | FK → users | |
-| `granted_by_user_id` | FK → users, nullable | хто дав доступ |
+| `organization_id` | FK → organizations | RLS |
+| `robot_id` | FK → robots (CASCADE) | |
+| `account_id` | FK → accounts (CASCADE) | людина з роллю USER (D83: було `user_id`) |
+| `granted_by_account_id` | FK → accounts, nullable | хто дав доступ |
+
+Унікальна пара `robot_id + account_id`. Реалізовано у фазі 6D (39-phase-6).
 
 Правила:
 

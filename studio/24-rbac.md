@@ -113,6 +113,7 @@ Regular User — у Face. Процеси й компоненти адмін пе
 | `POLICY_VIEW` | — | ✅ | ✅ | |
 | `POLICY_EDIT` | — | — | ✅ | |
 | `AUDIT_VIEW` | — | обмежено | ✅ | §4.4, D43 |
+| **+** `ROBOT_ACCESS_MANAGE` | — | — | ✅ | хто з USER запускає робота (`robot_access`, 39-phase-6, 6D) |
 
 ### Чого в ТЗ немає і як покрито
 
