@@ -162,6 +162,7 @@
 | `active_production_version_number` | int, nullable | **номер** версії, що зараз у PROD — вказівник, не статус. Ключ `(id, active_production_version_number)` → `robot_versions`, тож вказати на версію чужого робота неможливо (D61) | §4.1.10 |
 | `working_copy` | JSONB, nullable | робоча копія в редакторі (D34) | |
 | `working_copy_base_number` | int, nullable | від якої версії відкрито робочу копію — для «нічого не змінилось» (D63) | |
+| `archived_at` | timestamp, nullable | **Studio-back**: оркестратор заархівував робота (`orchestrator.robot.archived`, D55) — робоча копія й нові версії заблоковані до `restored` (6C) | |
 
 Що змінилось порівняно з попередньою чернеткою:
 
@@ -1189,6 +1190,7 @@ ID (`robot_number`) сам читабельний і не змінюється (
 | `result` | JSONB, nullable | |
 | `error` | text, nullable | |
 | `steps_total`, `steps_done`, `errors_count` | int, nullable | D13 |
+| `fallbacks_count` | int, nullable | елементи, знайдені резервним способом (D7a) — WARNING Health (D52, 6C) |
 
 Пізніше: `scope` (D66), `replaced_execution_id` (D72). Блокування облікових даних (D69) — без окремої таблиці, див. [21-queues](21-queues.md).
 Індекси: `(machine_id, status)` — черга машини; `(organization_id, requested_at)`.

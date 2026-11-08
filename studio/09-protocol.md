@@ -131,7 +131,8 @@ Keycloak (D81).
 `log` — `execution_id`, `entries[]` (`seq`, `step_id`, `level` `INFO` / `WARN` /
 `ERROR`, `message`, `occurred_at`, `payload`), до 500 рядків; `finished` —
 `execution_id`, `status`, `result`, `error`, `steps_total`, `steps_done`,
-`errors_count`. Звіт приймається лише від Assistant, якому запуск відправили.
+`errors_count`, `fallbacks_count` (6C: скільки елементів знайдено резервним способом,
+D7a — WARNING Health, D52; старі Assistant не шлють — 0). Звіт приймається лише від Assistant, якому запуск відправили.
 Не підтвердив за 60 с — `FAILED`, повторно не шлемо (міг отримати).
 
 **Фаза 5 (Assistant 1.3.0, протокол лишається 1):**

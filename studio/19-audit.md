@@ -113,7 +113,7 @@
 
 | Група | Дії |
 |-------|-----|
-| **Robot** | `ROBOT_CREATED`, `ROBOT_EDITED`, `ROBOT_RENAMED`, `ROBOT_OWNER_CHANGED`, `ROBOT_LIFECYCLE_CHANGED`, `ROBOT_ARCHIVED`, **+** `ROBOT_DELETED` |
+| **Robot** | `ROBOT_CREATED`, `ROBOT_EDITED`, `ROBOT_RENAMED`, `ROBOT_OWNER_CHANGED`, `ROBOT_LIFECYCLE_CHANGED`, `ROBOT_ARCHIVED`, **+** `ROBOT_DELETED`, **+** `ROBOT_RESTORED` |
 | **Version** | `VERSION_CREATED`, `VERSION_RELEASED`, `VERSION_PROMOTED`, `VERSION_PRODUCTION_ACTIVATED`, `VERSION_SUPERSEDED`, `VERSION_ROLLED_BACK`, **+** `VERSION_TESTING_STARTED` |
 | **Authorization** | `AUTHORIZATION_REQUESTED`, `AUTHORIZATION_APPROVED`, `AUTHORIZATION_REJECTED`, `AUTHORIZATION_REVOKED`, `AUTHORIZATION_EXPIRED` |
 | **Test Period** | `TEST_PERIOD_CREATED`, `TEST_PERIOD_APPROVED`, `TEST_PERIOD_REVOKED`, `TEST_PERIOD_EXPIRED`, **+** `TEST_PERIOD_REJECTED`, **+** `TEST_PERIOD_CANCELLED` |
@@ -152,6 +152,7 @@
 | `ROBOT_DELETED` | за D25 адмін може видалити робота остаточно; це точно критична дія |
 | `VERSION_TESTING_STARTED` | за D39 версія переходить DRAFT → TESTING — це зміна стану |
 | `TEST_PERIOD_REJECTED` | за D37 у періоду є стан REJECTED, а ТЗ перелічує лише approve |
+| `ROBOT_RESTORED` | відновлення з архіву дозволене (D55) — окрема дія людини, не лише зміна lifecycle (39-phase-6, 6C) |
 | `TEST_PERIOD_CANCELLED` | розробник сам забрав свій запит (39-phase-6, 6B рішення 5) — це не відмова адміна |
 | `EXECUTION_RESUMED` | у ТЗ є пауза запуску, але немає продовження після неї |
 

@@ -115,9 +115,9 @@ Studio-front. Адреси API фронти читають під час зап�
 | `POST` | `/robots/{id}/move-to-test` | DRAFT → TEST — явна дія розробника (ТЗ §5, крок 2) |
 | `POST` | `/robots/{id}/move-to-prod` | `{ version_number, comment }` → PENDING_APPROVAL або активовано за політикою (§4.1.15) |
 | `POST` | `/robots/{id}/rollback` | `{ version_number, reason }` (D53) |
-| `POST` | `/robots/{id}/availability` | `{ action: enable \| disable \| suspend \| resume, reason }` (D50) |
+| `POST` | `/robots/{id}/availability` | `{ action: enable \| disable \| suspend \| resume, reason }` (D50): переходи й права — 39-phase-6, 6C #1; той самий стан — 409, недозволений перехід — 400, роль — 403 |
 | `POST` | `/robots/{id}/archive`, `/robots/{id}/restore` | архів і відновлення в TEST (D55) |
-| `DELETE` | `/robots/{id}` | лише адмін, лише заархівованого (D55) |
+| `DELETE` | `/robots/{id}` | лише адмін, лише заархівованого (D55); 204; Studio отримує `orchestrator.robot.deleted` |
 
 Створити й перейменувати робота тут не можна — це робить Studio, а оркестратор
 отримує подію (D31).

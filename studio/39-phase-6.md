@@ -141,3 +141,63 @@ TEST, повторна подача, скасування запиту, bulk-app
 `TERMINATE`. Кнопки Studio / Face цього етапу перевірені лінтом, типами, юніт-тестами й
 збіркою, не кліками.
 
+
+## Етап 6C — рішення й задачі
+
+| # | Питання | Рішення | Чому |
+|---|---------|---------|------|
+| 1 | API Availability | `POST /robots/{id}/availability { action: enable \| disable \| suspend \| resume, reason }` (13-api). disable / enable — `ROBOT_DISABLE` / `ROBOT_ENABLE` (розробник і адмін), причина за бажанням; suspend / resume — `ROBOT_SUSPEND` / `ROBOT_RESUME` (лише адмін), причина обов'язкова для suspend. З SUSPENDED: лише resume або disable — і disable тоді лише з `ROBOT_SUSPEND`; enable з SUSPENDED — ні; suspend з DISABLED — ні; той самий стан — 409 | D50 |
+| 2 | Що з запусками | disable — запущені доробляють, у черзі → BLOCKED одразу; suspend — у черзі → BLOCKED, запущені (TEST і PROD) зупиняються на межі кроку (`stop_runs`) | D51: «у черзі → BLOCKED» не чекаючи тайм-ауту, бо стан критичний |
+| 3 | Аудит і сповіщення Availability | `ROBOT_ENABLED / DISABLED / SUSPENDED / RESUMED` з причиною; сповіщення адмінам — `WARNING` для suspend, `INFO` для решти | 19-audit, правило сповіщень |
+| 4 | Health — коли й з чого | `robots.health` (nullable): після кожного кінця PROD-запуску (finished, втрата зв'язку → FAILED) з 10 останніх PROD-запусків COMPLETED / FAILED: останній FAILED → ERROR; останній COMPLETED, але серед 10 були FAILED або в останньому були резервні способи → WARNING; інакше HEALTHY. PROD-запуск, що зняли з черги за тайм-аутом (машина не вийшла на зв'язок), → OFFLINE. Інші BLOCKED / CANCELLED Health не міняють | D52; ручна зупинка чи відмова перевірки — не технічний стан робота |
+| 5 | «Резервний спосіб» | Assistant у `EXECUTION_FINISHED` шле `fallbacks_count` (необов'язкове поле, старі Assistant — 0); оркестратор зберігає в `executions.fallbacks_count` | D7a; WARN-логи бувають і з інших причин — текст логу не сигнал |
+| 6 | Сповіщення Health | перехід у ERROR або OFFLINE (зі стану, що не був ним) → сповіщення адмінам `ERROR`; без аудиту | D52 |
+| 7 | Архів (D55) | `POST /robots/{id}/archive { reason }` — `ROBOT_ARCHIVE`, з DRAFT / TEST / PROD: lifecycle → ARCHIVED; запущені доробляють; у черзі → BLOCKED; вказівник активної версії знімається, RELEASED → SUPERSEDED; погодження APPROVED **і NOT_REQUIRED** → EXPIRED (`AUTHORIZATION_EXPIRED`); запити PENDING → CANCELLED з причиною, версія → EXPIRED; тестові періоди — запит CANCELLED, чинний REVOKED; аудит `ROBOT_ARCHIVED`; розкладів ще немає (фаза 7) | D55: NOT_REQUIRED теж — інакше після відновлення rollback обійшов би Move to PROD |
+| 8 | Відновлення | `POST /robots/{id}/restore` — `ROBOT_ARCHIVE`, лише з ARCHIVED → TEST; аудит `ROBOT_RESTORED` (+ до 19-audit) | D55 |
+| 9 | Видалення | `DELETE /robots/{id}` — `ROBOT_DELETE` (адмін), лише ARCHIVED; разом ідуть версії, запуски з логами, погодження, періоди (каскад у БД); аудит `ROBOT_DELETED` лишається | D55, D41 |
+| 10 | Заархівований робот | запуски — №4 (lifecycle); Move to PROD / rollback / тестові періоди / availability — 409; у списках видно з позначкою | ТЗ: запуски заборонені |
+| 11 | Studio | події `orchestrator.robot.archived / restored / deleted` (28): Studio-back ставить / знімає `robots.archived_at` — збереження робочої копії й нові версії → 409; deleted — видаляє робота з робочою копією й версіями | 28-studio-service |
+| 12 | UI | Studio-front: Availability (disable / enable; SUSPENDED — лише показ із причиною), Health, Archive / Restore, заархівований — редактор лише для читання. Face Robots: усі чотири дії Availability, Health, Archive / Restore / Delete | D56: suspend / resume / delete — адмін |
+
+| ID | Що | Де |
+|----|----|----|
+| **R1** ✅ | міграція: `robots.health`, `executions.fallbacks_count`, дії аудиту `ROBOT_ENABLED / DISABLED / SUSPENDED / RESUMED / ARCHIVED / RESTORED / DELETED`, `AUTHORIZATION_EXPIRED` | Orchester |
+| **R2** ✅ | Availability: API, переходи, запуски, аудит, сповіщення | Orchester |
+| **R3** ✅ | Health: розрахунок, OFFLINE, сповіщення; `fallbacks_count` у протоколі | Orchester, Desktop |
+| **R4** ✅ | архів / відновлення / видалення + події в Studio; Studio-back: `archived_at`, блокування, видалення | Orchester, Studio-back, contracts |
+| **R5** ✅ | Studio-front: Availability, Health, Archive / Restore, лише читання | Studio-front |
+| **R6** ✅ | Face Robots: Availability, Health, Archive / Restore / Delete | Face |
+| **R7** ✅ (див. «Живий прогін 6C») | живий прогін 6C | усі |
+
+Знайдено й виправлено під час 6C:
+
+- **Повернення в PROD після архіву.** Після archive → restore усі версії — SUPERSEDED /
+  EXPIRED, а Move to PROD приймав SUPERSEDED лише як ціль rollback: робот не міг
+  повернутися в PROD з наявними версіями, а нову без змін D34 не створює. Тепер версію з
+  погодженням EXPIRED можна подати знову (новий запит, як у D55); Studio показує її як
+  «APPROVAL EXPIRED» з кнопкою Move to PROD.
+- **Відкликана активна версія лишалась RELEASED** без вказівника (6B). Тепер revoke
+  активної ставить SUPERSEDED (+ аудит `VERSION_SUPERSEDED`): RELEASED — лише активна (D39).
+- **Assistant пропонував вимкнений робот** у «Robots» — запуск отримав би BLOCKED. Тепер
+  `GET /robots/runnable` пропускає роботів не в ENABLED.
+
+## Живий прогін 6C (2026-11-08)
+
+Стек dev із кодом 6C (міграції Orchester `f1c7a3e9b5d2`, Studio-back `9b4e2c7a1f30`),
+Assistant на машині розробника, сценарій через API, робот RBT-26.
+
+| Що | Результат |
+|----|-----------|
+| Тестове вікно закрите → PROD-запуск | `FAILED` «Element not found»; Health **ERROR**, адмінам сповіщення `ERROR` «RBT-26 … is ERROR: its last PROD run failed» |
+| Вікно відкрите → PROD-запуск | `COMPLETED`; Health **WARNING** (серед останніх 10 є падіння) |
+| Розробник: disable з причиною | DISABLED; `runnable` робота не пропонує; PROD-запуск — `BLOCKED` «The robot is disabled»; enable — знову ENABLED |
+| PROD-запуск іде → розробник suspend; адмін suspend «incident 42» | розробник — 403; адмін — SUSPENDED, запуск `CANCELLED` «Stopped: the robot was suspended»; розробник enable — 403; адмін resume — ENABLED |
+| Розробник: archive | ARCHIVED; 26.2 — SUPERSEDED / EXPIRED; у Studio-back `archived_at` за ~1 с; збереження робочої копії — 409; TEST-запуск — `BLOCKED` |
+| Restore → Move to PROD 26.2 → погодження | TEST, Studio знову дає зберігати; після погодження — PROD, 26.2 активна, PROD-запуск `COMPLETED` |
+| Новий робот із Studio → delete без архіву / розробником / адміном | 400 «Only an archived…» / 403 / 204; у оркестраторі й у Studio-back — 404 |
+| Аудит | `ROBOT_DISABLED / ENABLED / SUSPENDED / RESUMED`, `AUTHORIZATION_EXPIRED`, `ROBOT_ARCHIVED / RESTORED / DELETED`, повний ланцюжок повернення в PROD |
+
+Не перевірено живцем (лише тестами на справжній БД): Health **OFFLINE** (PROD-запуск
+знято з черги за тайм-аутом) і WARNING через `fallbacks_count` (Assistant у прогоні —
+збірка до 6C, поле не шле). Кнопки Studio / Face етапу перевірені лінтом, типами,
+юніт-тестами й збіркою, не кліками.
