@@ -400,3 +400,15 @@ Studio будує форму кроку й перевіряє сценарій; 
 - Паролів у параметрах немає — лише облікові дані (D20).
 - У Studio — блок «Parameters» над деревом кроків і «Run with» перед кнопкою Run.
 
+## Крок-компонент (фаза 8A, [41-phase-8](41-phase-8.md))
+
+```json
+{ "id": "s1", "activity": "flow/Component", "label": "Login",
+  "inputs": { "who": "{{user}}" }, "output": "greeting",
+  "component": { "id": "<uuid>", "number": 7, "version": 3,
+                 "name": "Login to BAS", "definition": { "parameters": [], "steps": [], "elements": {}, "result": "greeting" } } }
+```
+
+У робочій копії — лише `id` / `number` / `version`; `definition` (вміст версії компонента)
+Studio-back кладе при «Save» (D64). Усередині — власна область змінних: лише параметри
+всередину, лише `result` назовні; елементи — компонента; кроки в логах — `s1/c1`.
