@@ -126,7 +126,7 @@ Keycloak (D81).
 | → агент | `EXECUTION_TERMINATE` | обірвати негайно (D51) |
 
 У WS це `command: "execution"`, дії `assign` (→ агент) і `accepted` / `log` /
-`finished` (← агент) (L4). Фаза 1: `assign` — `execution_id`, `robot_id`,
+`finished` (← агент) (L4). Фаза 7: `definition` в `assign` — без `triggers` (розклад — справа оркестратора). Фаза 1: `assign` — `execution_id`, `robot_id`,
 `robot_number`, `version_number`, `label` (`184.2`), `lifecycle`, `definition`;
 `log` — `execution_id`, `entries[]` (`seq`, `step_id`, `level` `INFO` / `WARN` /
 `ERROR`, `message`, `occurred_at`, `payload`), до 500 рядків; `finished` —

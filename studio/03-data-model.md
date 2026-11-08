@@ -702,6 +702,12 @@ SCRIPT | FLOW`, ніяких гілок «а це робот якого типу
 
 Додано після D28.
 
+**Реалізовано у фазі 7 ([40-phase-7](40-phase-7.md)):** `schedules (id, organization_id,
+robot_id, version_number, trigger_index — місце в `definition.triggers` (рядок той самий
+між версіями), machine_id, cron, timezone (порожньо — організації), input, next_fire_at,
+last_fired_at)`, унікальна пара `robot_id + trigger_index`, RLS; `executions.schedule_id`
+(SET NULL). Таблиця нижче — попередній задум.
+
 **`schedules`**
 
 | Поле | Тип | Навіщо |
