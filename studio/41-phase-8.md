@@ -68,3 +68,56 @@
 | Робот RBT-28: двічі `flow/Component` (`who = Ann`, `who = Bob`) + `Log {{first}}` / `{{second}}` → перевірка | без помилок, `min_assistant_version` 1.4.0 |
 | «Save» | версія 28.1 містить копію компонента (кроки `c1`, `c2`) — D64 |
 | TEST-запуск в Assistant | `COMPLETED`, 8/8 кроків; у лозі `s1/c1`, `s1/c2`, `s3/c1`, `s3/c2`; «Hello Ann from a component», «Hello Bob from a component» — результат кожного виклику свій |
+
+## Етап 8B — рішення
+
+| # | Питання | Рішення | Чому |
+|---|---------|---------|------|
+| 1 | Редактор | **bpmn-js 18.31.1** (Modeler), ліниво — окрема сторінка й чанк, CSS bpmn-js підвантажується при відкритті редактора. Ліцензія bpmn.io: безкоштовно, зокрема для комерційного закритого продукту; **водяний знак bpmn.io не прибирається й не перекривається** — ми його не чіпаємо | ліцензію перевірено 2026-11-08 (bpmn.io/license, LICENSE у репо) |
+| 2 | Де живуть процеси | лише Studio-back: `processes` (картка, `PRC-n` з лічильника, робоча копія — BPMN XML, архів), `process_versions` (`(process_id, number)`, XML, хеш, опис змін, автор), `business_tasks` (ідентичність задачі: номер `BT-n` в організації, процес, id елемента BPMN, архів), `process_version_tasks` (вміст задачі у версії: назва, опис, тип виконавця, робот, доріжка) | D57, D78: ідентичність окремо, вміст — у версії |
+| 3 | Тип виконавця й робот | атрибути елемента BPMN у власному просторі імен: `tekra:executor` = `HUMAN` / `AI` / `SYSTEM` / `ROBOT`, `tekra:robotId` (для ROBOT). bpmn-js зберігає чужі атрибути при експорті | D78; XML лишається стандартним BPMN 2.0 |
+| 4 | Що дозволено в схемі | один `process`: Start / End Event, задачі (`task`, `userTask`, `serviceTask`, `manualTask`), Exclusive Gateway, Sequence Flow, Lane; інше — помилка; потрібні хоч одна Start і одна End; `ROBOT` без робота чи з чужим роботом — помилка. `<!DOCTYPE>` відкидається (захист парсера) | D57: набір MVP |
+| 5 | Ідентичність задачі | `business_tasks` — за парою (процес, id елемента BPMN): елемент, що лишився в новій версії, — та сама задача; новий — нова `BT-n`; зниклий — задача лишається в історії | D78 |
+| 6 | Версії | як у роботів (D34): нова — лише коли XML змінився (хеш); без TEST / PROD і погоджень | D57 |
+| 7 | Здоров'я процесу | найгірше з Health роботів його задач (ERROR / OFFLINE > WARNING > HEALTHY; робот без Health не рахується); рахує Studio-front з `GET /robots` оркестратора — кожне зі свого сервісу | D57, D31 |
+| 8 | Аудит | `studio.process_version.created` → оркестратор пише `PROCESS_VERSION_CREATED` (28: «лише аудит») | 19-audit |
+| 9 | UI | Processes: список (PRC-n, назва, версія, здоров'я); редактор: полотно bpmn-js + бічна панель вибраної задачі (назва, опис, виконавець, робот зі списку), перевірка, «Save version», версії | D82 |
+
+## Задачі 8B
+
+| ID | Що | Де |
+|----|----|----|
+| **B1** ✅ | Studio-back: міграція (процеси, версії, задачі, лічильники), розбір і перевірка BPMN, API, подія | Studio-back, contracts |
+| **B2** ✅ | оркестратор: аудит `PROCESS_VERSION_CREATED` | Orchester |
+| **B3** ✅ | Studio-front: Processes, редактор bpmn-js + панель задачі, здоров'я процесу | Studio-front |
+| **B4** ✅ | живий прогін: процес із задачею робота → версія → здоров'я з оркестратора | усі |
+
+Як зроблено (бекенд 8B):
+
+- **Studio-back** — `processes`, `process_versions`, `business_tasks`, `process_version_tasks`,
+  лічильники `next_process_number` / `next_business_task_number` (міграція `b5d9f2a6c341`);
+  `utils/bpmn.py` — розбір стандартною бібліотекою, DOCTYPE відкидається до розбору;
+  `ProcessService` (картка, робоча копія, перевірка — набір MVP і роботи організації, версії
+  за хешем XML, бізнес-задачі за id елемента, подія `studio.process_version.created`).
+- **Оркестратор** — аудит `PROCESS_VERSION_CREATED` (міграція `d4a8c1f6b392`).
+
+## Живий прогін 8B (2026-11-08, частина API)
+
+| Що | Результат |
+|----|-----------|
+| Схема з `subProcess`, без End, з чужим роботом → перевірка | `unsupported` (sub), `no_end`, `robot_unknown` (greet) |
+| Процес «Invoice processing»: userTask, дві задачі ROBOT (RBT-26, RBT-28), Gateway, задача AI → перевірка → версія | без помилок; PRC-1.1; бізнес-задачі BT-1…BT-4 з виконавцями HUMAN / ROBOT / ROBOT / AI |
+| Здоров'я | роботи процесу: RBT-26 — WARNING, RBT-28 — ще без Health → процес WARNING |
+| Аудит оркестратора | `PROCESS_VERSION_CREATED 1.1 «Invoice processing …»` |
+
+Частина UI (Studio-front, headless-браузер під розробником):
+
+| Що | Результат |
+|----|-----------|
+| Processes | PRC-1 · Invoice processing · 1.1 · **WARNING** (здоров'я з `GET /robots` оркестратора); Archive — поза посиланням рядка |
+| Редактор PRC-1 | стилі bpmn-js підвантажені посиланнями (`diagram-js.css`, `bpmn-js.css`, `bpmn-embedded.css`, `tekra-markers.css`); водяний знак bpmn.io видимий і не перекритий |
+| Схема без розкладки (створена через API) | спершу «no diagram to display» → **виправлено**: схема без `bpmndi:BPMNDiagram` розкладається автоматично (`bpmn-auto-layout` 1.3.0, MIT, bpmn.io) з приміткою; атрибути `tekra:*` лишаються (тест на справжньому bpmn-js) |
+| Клік по задачі «enter» | панель: назва «Enter into 1C», виконавець Robot, робот «RBT-26 · Phase 5 params» |
+
+Не перевірено кліками: малювання нової схеми, «Save version» з UI, підсвітка помилок на полотні.
+
