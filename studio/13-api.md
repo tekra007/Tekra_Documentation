@@ -257,9 +257,12 @@ PROD-машинах застарий (D72).
 
 | Метод | Шлях | Що робить |
 |-------|------|-----------|
-| `GET` | `/test-periods` | список |
-| `POST` | `/test-periods` | запросити (розробник) або видати одразу (адмін) |
-| `POST` | `/test-periods/{id}/revoke` | відкликати достроково |
+| `GET` | `/robots/{id}/test-periods` | періоди робота, нові першими; `in_force` — за часом, `approval_id` — запит, що чекає (`ROBOT_VIEW`) |
+| `POST` | `/robots/{id}/test-periods` | `{ duration_hours, comment }`: розробник (`TEST_PERIOD_REQUEST`) — запит у Approvals (`TEST_PERIOD`), адмін (`TEST_PERIOD_APPROVE`) — видає одразу; політика вимкнена — 400, тривалість поза пресетами / максимумом — 400, уже є запит або чинний — 409 |
+| `POST` | `/test-periods/{id}/revoke` | `{ reason }` — відкликати чинний достроково (`TEST_PERIOD_REVOKE`); TEST-запуски — за політикою `test_period_expiry_behavior` |
+
+Свій запит розробник забирає через `POST /approvals/{id}/cancel` — період стає `CANCELLED`
+(6B, рішення 5). Реалізовано у фазі 6B (39-phase-6).
 
 ### Аудит (D41–D43)
 
