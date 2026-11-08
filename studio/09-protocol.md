@@ -143,6 +143,24 @@ Assistant шле звіти лише після `assistant/registered` на по
 - значення облікових даних їдуть лише в `EXECUTION_ASSIGN` по `wss` і в логи
   потрапляють як `***` (D20).
 
+**Фаза 4 (E5):** `assign.credentials` — `{ "<credential id>": { "username", "password" } }`,
+лише ті облікові дані, на які посилається `definition` (`{"credential": id, "part"}`
+у входах кроків). Яких немає в організації — запуск `BLOCKED` («credentials
+missing»), до Assistant нічого не йде. Assistant підставляє значення в момент
+кроку й замінює кожне отримане значення на `***` у **кожному** рядку логу й у
+`error`; налагоджувальний лог WS пише повідомлення через `redacted()` (паролі й
+токени — `***`).
+
+### Studio-back ↔ оркестратор: перевірка сценарію (фаза 4, E3)
+
+Запит-відповідь через брокер `orchestrator.scenario_check`
+(`src/contracts`, однаково в обох репо): `{ credential_ids, providers }` →
+`{ missing_credentials, providers_without_assistant, newest_assistant_version,
+assistants }`. Немає облікових даних — помилка перевірки (блокує «Зберегти»);
+провайдера немає в жодного Assistant чи Assistant старіші за
+`min_assistant_version` — попередження. Оркестратор не відповів вчасно —
+`unchecked: ["credentials", "assistants"]` (D68), «Зберегти» не блокується.
+
 ## Ухвалено (D26 ✅, D27 ✅)
 
 **Логи** їдуть пачками, але повідомлення рівня `ERROR` надсилається негайно.

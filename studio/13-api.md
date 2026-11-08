@@ -48,7 +48,7 @@ Studio-front. Адреси API фронти читають під час зап�
 
 | Метод | Шлях | Що робить |
 |-------|------|-----------|
-| `GET` | `/activities` | увесь каталог (D2). Майже статика — кешується |
+| `GET` | `/activities` | увесь каталог (D2): `catalog_version`, `features`, `activities[]` (`name`, `provider`, `title`, `min_assistant_version`, `inputs[]` з `type` / `required` / `required_when` / `default` / `options`, `output`, `blocks[]`). Дані з `src/catalog/activities.json` (36-phase-4); `Cache-Control` — година |
 
 ### Роботи: створення й редагування
 
@@ -58,7 +58,7 @@ Studio-front. Адреси API фронти читають під час зап�
 | `PATCH` | `/robots/{id}` | назва, опис, власник |
 | `GET` | `/robots/{id}/working-copy` | робоча копія + від якої версії відкрита (`working_copy_base_number`) |
 | `PUT` | `/robots/{id}/working-copy` | зберегти робочу копію — це **ще не версія** (D34) |
-| `POST` | `/robots/{id}/validate` | перевірити сценарій → `{ errors, warnings, unchecked }` ([14-validation.md](14-validation.md)); `unchecked` — що не вдалося перевірити без оркестратора (D68) |
+| `POST` | `/robots/{id}/validate` | перевірити сценарій `{ definition? }` (порожньо — робоча копія) → `{ errors, warnings, unchecked, min_assistant_version }` ([14-validation.md](14-validation.md)); кожна знахідка — `code`, `message`, `step_id`, `field`; `unchecked` — що не вдалося перевірити без оркестратора (D68). Редактор Studio викликає через 600 мс після зміни |
 
 Список роботів і картку зі станами браузер бере з оркестратора — там реєстр.
 
@@ -66,7 +66,7 @@ Studio-front. Адреси API фронти читають під час зап�
 
 | Метод | Шлях | Що робить |
 |-------|------|-----------|
-| `POST` | `/robots/{id}/versions` | **«Зберегти»** з робочої копії: якщо `definition` змінився — нова версія, **201**; ні — повертає наявну, **200** (D34). → `{ number, registered, created }`. Сценарій не за форматом — **422** `{ detail, errors }`; копія порожня — 400. Оркестратор не чекає (D68) |
+| `POST` | `/robots/{id}/versions` | **«Зберегти»** з робочої копії: якщо `definition` змінився — нова версія, **201**; ні — повертає наявну, **200** (D34). → `{ number, registered, created }`. Сценарій не за форматом або перевірка знайшла **помилки** — **422** `{ detail, errors }` (`loc`, `msg`, `type`, `step_id`, `field`); попередження не заважають; копія порожня — 400. У версії зберігається `min_assistant_version`. Оркестратор не чекає (D68) |
 | `GET` | `/robots/{id}/versions` | список: номер, автор, дата, опис змін, `registered` |
 | `GET` | `/robots/{id}/versions/{number}` | версія з повним `definition` |
 | `PATCH` | `/robots/{id}/versions/{number}` | лише `change_description` (`VERSION_EDIT`); сама версія незмінна |
@@ -211,6 +211,13 @@ TEST, машина — та, де автор зараз увійшов в Assist
 
 Пароль не повертається **жодним** ендпоінтом (D20). `usage` — щоб не видалити
 те, чим користуються.
+
+**Фаза 4 (E4, 2026-11-07):** усе з таблиці реалізовано. Права: `GET` і `usage` —
+`CREDENTIAL_VIEW` (адмін, розробник), решта — `CREDENTIAL_MANAGE` (адмін). Пароль
+шифрується ключем організації (`OrganizationSecrets`). Назва в організації
+унікальна — 409; `DELETE` того, що згадує хоч одна версія робота, — 409 зі списком
+роботів; чужа організація — 404. Аудит `CREDENTIAL_*`, сповіщення адмінам (`INFO`).
+`single_session` зберігається, але блокування між запусками (D69) — фаза 5.
 
 ### Погодження (D38)
 
