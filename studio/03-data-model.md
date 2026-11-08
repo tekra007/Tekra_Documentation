@@ -1180,13 +1180,17 @@ ID (`robot_number`) сам читабельний і не змінюється (
 | `source` | enum `MANUAL` / `SCHEDULE` | |
 | `requested_by_account_id` | FK → accounts, set null, nullable | |
 | `requested_at` | timestamp | |
+| `input` | JSONB, nullable | значення параметрів версії з підставленими `default` (D22, фаза 5) |
 | `queue_expires_at` | timestamp, nullable | ручний запуск — +5 хв (D48) |
+| `waiting_reason` | text, nullable | на що чекає запуск у черзі (D73, фаза 5); знімається при відправці |
+| `connection_lost_at` | timestamp, nullable | зв'язок з агентом обірвався (D51, фаза 5); знімає наступний звіт |
+| `cancel_requested_at` | timestamp, nullable | попросили зупинити відправлений запуск (фаза 5) |
 | `dispatched_at`, `delivered_at`, `last_event_at`, `started_at`, `finished_at` | timestamp, nullable | D35, D51 |
 | `result` | JSONB, nullable | |
 | `error` | text, nullable | |
 | `steps_total`, `steps_done`, `errors_count` | int, nullable | D13 |
 
-Пізніше: `input` (D22), `scope` (D66), `replaced_execution_id` (D72).
+Пізніше: `scope` (D66), `replaced_execution_id` (D72). Блокування облікових даних (D69) — без окремої таблиці, див. [21-queues](21-queues.md).
 Індекси: `(machine_id, status)` — черга машини; `(organization_id, requested_at)`.
 
 **`execution_logs`** (крок 3, D12)

@@ -155,7 +155,21 @@ TEST, машина — та, де автор зараз увійшов в Assist
 `dispatched_at`) або `BLOCKED` з `block_reason`; 403 — роль не може TEST (№14), 404 —
 немає робота / версії (№1–3), 400 — автор не увійшов у жоден Assistant; відмови
 теж в аудиті. `GET /executions?robot_id&limit` (новіші першими), `/executions/{id}`,
-`/executions/{id}/logs?after_seq&limit`. Скасування й налагодження — пізніше.
+`/executions/{id}/logs?after_seq&limit`. Налагодження — пізніше.
+
+**Фаза 5 ([37](37-phase-5.md), 2026-11-08):**
+
+- `POST /executions { robot_id, version_number, input }` — `input` — значення
+  параметрів версії (D22). Невідоме ім'я, відсутнє обов'язкове, не той тип, текст
+  довший за 10 000 символів — **400** «Wrong parameters: …» (запуску немає, слід в
+  аудиті). Порожні беруть `default`; у запуску зберігається повний `input`.
+- `POST /executions/{id}/cancel` — `EXECUTION_CANCEL`: свої запуски, адмін — будь-які
+  (чужий — 403). Не відправлений — одразу `CANCELLED`; відправлений / RUNNING —
+  `cancel_requested_at`, агент зупиняється на межі кроку й звітує `CANCELLED`.
+  Повтор — 200 без змін; завершений — 409.
+- У `ExecutionSchema` нові поля: `input`, `waiting_reason` (на що чекає запуск у
+  черзі), `connection_lost_at` (зв'язок з агентом обірвався, D51),
+  `cancel_requested_at`.
 Наживо (L5): `/me/ws` — підписка на `execution_id`, події `execution_updated` /
 `execution_logs`, автору — `version_registered`; формат — [09-protocol.md](09-protocol.md).
 
@@ -174,7 +188,7 @@ TEST, машина — та, де автор зараз увійшов в Assist
 | `GET` | `/machines/{id}` | картка; попередження, якщо `MachineGuid` повторюється (D77) |
 | `PATCH` | `/machines/{id}` | назва |
 | `GET` | `/assistants` | список: машина, хто зараз увійшов (`signed_in_account_id`), версія, `capabilities`, дозволені середовища; лише адмін |
-| `PATCH` | `/assistants/{id}` | `allowed_environments` — `TEST` / `PROD`, лише адмін (D76) |
+| `PATCH` | `/assistants/{id}` | `allowed_environments` — непорожня підмножина `TEST` / `PROD`, лише адмін (D76); аудит `ASSISTANT_UPDATED`, сповіщення `INFO`; черга машини перевіряється знову ✅ фаза 5 |
 
 Створення немає навмисно: машина зʼявляється сама, коли агент підключається
 (D10).

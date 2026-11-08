@@ -118,7 +118,7 @@
 | **Authorization** | `AUTHORIZATION_REQUESTED`, `AUTHORIZATION_APPROVED`, `AUTHORIZATION_REJECTED`, `AUTHORIZATION_REVOKED`, `AUTHORIZATION_EXPIRED` |
 | **Test Period** | `TEST_PERIOD_CREATED`, `TEST_PERIOD_APPROVED`, `TEST_PERIOD_REVOKED`, `TEST_PERIOD_EXPIRED`, **+** `TEST_PERIOD_REJECTED` |
 | **Availability** | `ROBOT_ENABLED`, `ROBOT_DISABLED`, `ROBOT_SUSPENDED`, `ROBOT_RESUMED` |
-| **Execution** | `EXECUTION_REQUESTED`, `EXECUTION_BLOCKED`, `EXECUTION_QUEUED`, `EXECUTION_STARTED`, `EXECUTION_PAUSED`, `EXECUTION_COMPLETED`, `EXECUTION_FAILED`, `EXECUTION_CANCELLED`, **+** `EXECUTION_RESUMED` |
+| **Execution** | `EXECUTION_REQUESTED`, `EXECUTION_BLOCKED`, `EXECUTION_QUEUED`, `EXECUTION_STARTED`, `EXECUTION_PAUSED`, `EXECUTION_COMPLETED`, `EXECUTION_FAILED`, `EXECUTION_CANCELLED`, **+** `EXECUTION_RESUMED`, **+** `EXECUTION_CANCEL_REQUESTED` (фаза 5: попросили зупинити відправлений запуск; актор — людина) |
 | **Policy** | `POLICY_CREATED`, `POLICY_CHANGED`, `POLICY_ACTIVATED`, `POLICY_DEACTIVATED` |
 
 Доповнення фази 0 (G1) — люди й організації, у ТЗ їх немає:
@@ -128,6 +128,8 @@
 | **Account** | **+** `ACCOUNT_CREATED`, **+** `ACCOUNT_SIGNED_IN` |
 | **Organization** | **+** `ORGANIZATION_UPDATED`, **+** `ORGANIZATION_RESET`, **+** `ORGANIZATION_DELETED` |
 | **Member** | **+** `MEMBER_INVITED`, **+** `MEMBER_JOINED`, **+** `MEMBER_ROLE_CHANGED`, **+** `MEMBER_STATUS_CHANGED`, **+** `MEMBER_UPDATED`, **+** `MEMBER_REMOVED` |
+| **Assistant** | **+** `ASSISTANT_LINK_ISSUED`, **+** `ASSISTANT_LINK_USED`, **+** `ASSISTANT_UPDATED` (фаза 5: адмін змінив дозволені середовища; `previous_state` / `new_state` — `TEST,PROD` / `PROD`) |
+| **Credential** | **+** `CREDENTIAL_CREATED`, **+** `CREDENTIAL_UPDATED`, **+** `CREDENTIAL_SECRET_CHANGED`, **+** `CREDENTIAL_DELETED` (фаза 4) |
 
 У коді enum містить лише вже записувані дії; решта переліку додається міграцією
 разом зі своєю фічею.

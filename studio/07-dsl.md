@@ -373,3 +373,30 @@ Studio будує форму кроку й перевіряє сценарій; 
 - **D22** — чи оголошує робот свої вхідні параметри
 
 Обидва — у [02-decisions.md](02-decisions.md).
+
+## Фаза 5 — вхідні параметри (D22)
+
+> 2026-11-08, [37-phase-5.md](37-phase-5.md). Код — `Parameter` у `src/contracts/definition.py`.
+
+```json
+{
+  "parameters": [
+    { "name": "file", "title": "Orders file", "type": "text", "required": true },
+    { "name": "limit", "type": "number", "default": 10 }
+  ],
+  "steps": [ … "{{file}}" … ],
+  "elements": { … }
+}
+```
+
+- `name` — ім'я змінної (`[A-Za-z_][A-Za-z0-9_]*`), унікальне; `type` — `text` /
+  `number` / `boolean` (за замовчуванням `text`); `default` — того самого типу.
+- Значення дає запуск (`POST /executions { input }`), оркестратор перевіряє й
+  підставляє `default`; на старті кожен параметр — змінна. Необов'язковий без
+  значення й без `default` — `null`.
+- Studio вважає параметри змінними з першого кроку; невикористаний — попередження
+  (`field = "parameters.<name>"`). Версія з параметрами вимагає Assistant 1.3.0
+  (фіча каталогу `parameters`).
+- Паролів у параметрах немає — лише облікові дані (D20).
+- У Studio — блок «Parameters» над деревом кроків і «Run with» перед кнопкою Run.
+
