@@ -53,12 +53,33 @@ DRAFT → TESTING (фаза 1), черга з PROD першим (фаза 1), с
 
 | ID | Що | Де |
 |----|----|----|
-| **P1** | `organization_policies` (D44): таблиця + міграція + RLS, рядок створюється з організацією (і для наявних — міграцією), `GET` / `PATCH /policies` (`POLICY_VIEW` / `POLICY_EDIT`), аудит `POLICY_CHANGED`; виконання читає тайм-аути й «один PROD-робот» звідси | Orchester |
-| **P2** | Погодження за D38: колонки `approvals` (`robot_id`, `version_number`, `test_period_id`, `requested_by_account_id`, `request_comment`, `decision_reason`, статус `CANCELLED`, тип `PROD_PROMOTION`); `robots.active_production_version_number`; `robot_versions.released_by_account_id / released_at`; нові `AuditAction` | Orchester |
-| **P3** | `POST /robots/{id}/move-to-prod {version_number, comment}`: lifecycle → PROD; політика не вимагає — RELEASED / NOT_REQUIRED і активація; вимагає — PENDING_APPROVAL і запит у `approvals`; сповіщення адмінам `ACTION`; попередження про застарілих агентів у відповіді | Orchester |
-| **P4** | `GET /approvals`, `POST /approvals/{id}/approve | reject {reason} | cancel`; approve — RELEASED / APPROVED, активація, попередня — SUPERSEDED, 4 рядки аудиту з одним `correlation_id`; reject — REJECTED, і якщо активної немає — lifecycle → TEST; bulk-approve — через той самий шлях | Orchester |
-| **P5** | `GET /robots/{id}/versions` (стани кожної версії для Studio й Face) | Orchester |
-| **P6** | PROD-запуск: `POST /executions { robot_id, lifecycle: "PROD", input }` → активна версія; перевірки №4–6, 13, 16-PROD (політика `prod_single_instance`), 17; `runnable` для розробника — і TEST, і PROD | Orchester |
-| **P7** | Studio-front: версії з Release State / Authorization, «Move to PROD» з коментарем і попередженням, стан погодження, «Run in PROD» для активної | Studio-front |
-| **P8** | Face: сторінка Approvals (список, погодити / відхилити з причиною, попередження D72), дзвіночок веде туди; Settings → Policies (`PATCH /policies`) | Face |
-| **P9** | Живий прогін 6A: робот → Move to PROD → адмін погоджує у Face → PROD-запуск із Assistant | усі |
+| **P1** ✅ | `organization_policies` (D44): таблиця + міграція + RLS, рядок створюється з організацією (і для наявних — міграцією), `GET` / `PATCH /policies` (`POLICY_VIEW` / `POLICY_EDIT`), аудит `POLICY_CHANGED`; виконання читає тайм-аути й «один PROD-робот» звідси | Orchester |
+| **P2** ✅ | Погодження за D38: колонки `approvals` (`robot_id`, `version_number`, `test_period_id`, `requested_by_account_id`, `request_comment`, `decision_reason`, статус `CANCELLED`, тип `PROD_PROMOTION`); `robots.active_production_version_number`; `robot_versions.released_by_account_id / released_at`; нові `AuditAction` | Orchester |
+| **P3** ✅ | `POST /robots/{id}/move-to-prod {version_number, comment}`: lifecycle → PROD; політика не вимагає — RELEASED / NOT_REQUIRED і активація; вимагає — PENDING_APPROVAL і запит у `approvals`; сповіщення адмінам `ACTION`; попередження про застарілих агентів у відповіді | Orchester |
+| **P4** ✅ | `GET /approvals`, `POST /approvals/{id}/approve | reject {reason} | cancel`; approve — RELEASED / APPROVED, активація, попередня — SUPERSEDED, 4 рядки аудиту з одним `correlation_id`; reject — REJECTED, і якщо активної немає — lifecycle → TEST; bulk-approve — через той самий шлях | Orchester |
+| **P5** ✅ | `GET /robots/{id}/versions` (стани кожної версії для Studio й Face) | Orchester |
+| **P6** ✅ | PROD-запуск: `POST /executions { robot_id, lifecycle: "PROD", input }` → активна версія; перевірки №4–6, 13, 16-PROD (політика `prod_single_instance`), 17; `runnable` для розробника — і TEST, і PROD | Orchester |
+| **P7** ✅ | Studio-front: версії з Release State / Authorization, «Move to PROD» з коментарем і попередженням, стан погодження, «Run in PROD» для активної | Studio-front |
+| **P8** ✅ | Face: сторінка Approvals (список, погодити / відхилити з причиною, попередження D72), дзвіночок веде туди; Settings → Policies (`PATCH /policies`) | Face |
+| **P9** ✅ (див. «Живий прогін 6A») | Живий прогін 6A: робот → Move to PROD → адмін погоджує у Face → PROD-запуск із Assistant | усі |
+
+## Живий прогін 6A (2026-11-08)
+
+Стек dev з кодом 6A; міграцію `d3a9f1c7e284` накочено на dev-БД (`alembic check`
+чистий, downgrade / upgrade без помилок). Політики — типові (PROD потребує
+погодження).
+
+| Що | Результат |
+|----|-----------|
+| Studio (розробник): RBT-26, версія 26.1 «TESTING» → Move to PROD з коментарем | «Version 26.1 is waiting for an admin…», версія «WAITING FOR APPROVAL», робот одразу в PROD |
+| Face (адмін): Approvals → Pending | запит RBT-26.1, хто й коли, коментар; Approve → «APPROVED, Approved by admin@tekra.local» |
+| Після погодження | 26.1 — RELEASED / APPROVED, активна; `GET /robots/runnable` пропонує її як PROD |
+| Studio: «Run in PROD» з параметром `who = Petro` | PROD-запуск 26.1 `COMPLETED`, тестове вікно отримало `LOGIN Petro 7` |
+
+Знайдено й виправлено під час прогону: у списку версій Studio кнопки «Move to PROD» /
+«Cancel request» переносились у вузьку першу колонку сітки й виглядали як текст —
+стан і дії тепер в одній клітинці.
+
+Не перевірено живцем (лише тестами на справжній БД): відхилення й повернення робота в
+TEST, повторна подача, скасування запиту, bulk-approve з пропуском, «один PROD-робот».
+

@@ -60,6 +60,7 @@
 | 34 | [34-phase-2.md](34-phase-2.md) | Фаза 2 — Executor: логіка сценарію й повний `desktop-uia` |
 | 35 | [35-phase-3.md](35-phase-3.md) | Фаза 3 — Inspector: захоплення елемента, знімок, бібліотека |
 | 36 | [36-phase-4.md](36-phase-4.md) | Фаза 4 — редактор Studio: каталог, перевірка, облікові дані |
+| 39 | [39-phase-6.md](39-phase-6.md) | Фаза 6 — шлях у PROD: етапи 6A–6D, рішення, живі прогони |
 | 38 | [38-desktop-return.md](38-desktop-return.md) | Що повернули в десктоп: Robots і Run, Stop на машині, таймер, звук, заготовки Schedule / Market |
 | 37 | [37-phase-5.md](37-phase-5.md) | Фаза 5 — виконання: параметри, скасування, облікові дані між запусками, зв'язок |
 | 29 | [29-deployment-model.md](29-deployment-model.md) | Модель розгортання (Free shared / Paid isolated / Marketplace) — **затверджено** (D74); розбір і оцінка впливу |

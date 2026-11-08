@@ -167,6 +167,7 @@ TEST, машина — та, де автор зараз увійшов в Assist
   (чужий — 403). Не відправлений — одразу `CANCELLED`; відправлений / RUNNING —
   `cancel_requested_at`, агент зупиняється на межі кроку й звітує `CANCELLED`.
   Повтор — 200 без змін; завершений — 409.
+- **Фаза 6A:** `POST /executions { robot_id, lifecycle: "PROD", input }` — активна версія (№5); `version_number` необов'язковий, але якщо дано — має збігатися. Перевірки №5–6, №16-PROD (`prod_single_instance`), тайм-аути — з політик.
 - У `ExecutionSchema` нові поля: `input`, `waiting_reason` (на що чекає запуск у
   черзі), `connection_lost_at` (зв'язок з агентом обірвався, D51),
   `cancel_requested_at`.
@@ -188,6 +189,11 @@ TEST, машина — та, де автор зараз увійшов в Assist
 | `GET` | `/machines/{id}` | картка; попередження, якщо `MachineGuid` повторюється (D77) |
 | `PATCH` | `/machines/{id}` | назва |
 | `GET` | `/assistants` | список: машина, хто зараз увійшов (`signed_in_account_id`), версія, `capabilities`, дозволені середовища; лише адмін |
+| `POST` | `/robots/{id}/move-to-prod` | `{version_number, comment}` → `{version, approval_required, approval_id, outdated_assistants}`; `ROBOT_MOVE_TO_PROD` ✅ 6A |
+| `GET` | `/robots/{id}/versions` | версії з `release_state`, `authorization`, `is_active`, `pending_approval_id` ✅ 6A |
+| `GET` / `PATCH` | `/policies` | політики організації (D44); `POLICY_VIEW` / `POLICY_EDIT` ✅ 6A |
+| `GET` | `/approvals`, `/approvals/{id}` | адмін — усі, розробник — свої ✅ 6A |
+| `POST` | `/approvals/{id}/approve` `{reason?}` · `/reject` `{reason}` · `/cancel` | рішення (D38); `bulk-approve` → `{affected, skipped}` ✅ 6A |
 | `GET` | `/robots/runnable` | роботи, які ця людина може запустити зараз, з версією й `parameters` — екран «Robots» Assistant (38): розробник — остання версія роботів у TEST / PROD; USER — з фазою 6; адмін — порожньо ✅ |
 | `PATCH` | `/assistants/{id}` | `allowed_environments` — непорожня підмножина `TEST` / `PROD`, лише адмін (D76); аудит `ASSISTANT_UPDATED`, сповіщення `INFO`; черга машини перевіряється знову ✅ фаза 5 |
 

@@ -129,6 +129,7 @@
 | **Organization** | **+** `ORGANIZATION_UPDATED`, **+** `ORGANIZATION_RESET`, **+** `ORGANIZATION_DELETED` |
 | **Member** | **+** `MEMBER_INVITED`, **+** `MEMBER_JOINED`, **+** `MEMBER_ROLE_CHANGED`, **+** `MEMBER_STATUS_CHANGED`, **+** `MEMBER_UPDATED`, **+** `MEMBER_REMOVED` |
 | **Assistant** | **+** `ASSISTANT_LINK_ISSUED`, **+** `ASSISTANT_LINK_USED`, **+** `ASSISTANT_UPDATED` (фаза 5: адмін змінив дозволені середовища; `previous_state` / `new_state` — `TEST,PROD` / `PROD`) |
+| **6A** | **+** `VERSION_PROMOTED`, `VERSION_RELEASED`, `VERSION_PRODUCTION_ACTIVATED`, `VERSION_SUPERSEDED`, `AUTHORIZATION_REQUESTED / APPROVED / REJECTED`, **+** `AUTHORIZATION_CANCELLED` (розробник відкликав запит), `POLICY_CHANGED` (типові політики з'являються без запису — це не дія) |
 | **Credential** | **+** `CREDENTIAL_CREATED`, **+** `CREDENTIAL_UPDATED`, **+** `CREDENTIAL_SECRET_CHANGED`, **+** `CREDENTIAL_DELETED` (фаза 4) |
 
 У коді enum містить лише вже записувані дії; решта переліку додається міграцією
