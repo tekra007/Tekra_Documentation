@@ -58,3 +58,53 @@ Studio-back → версія 29.1 → TEST-запуск в Assistant 1.6.0 (ви
 
 Не перевірено: збірка exe з драйвером Playwright (PyInstaller), Chrome без Edge.
 
+
+## Етап 10B — рішення
+
+| # | Питання | Рішення | Чому |
+|---|---------|---------|------|
+| 1 | Як захоплюється веб-елемент | `POST /inspector-sessions { provider: "web-cdp", url }`: Assistant відкриває **кероване вікно** Edge (чистий профіль, як у запуску) на `url`; людина ходить сторінками (зокрема входить сама); під курсором — підсвітка елемента; **Ctrl + клік** — захоплення (звичайні кліки працюють як завжди, щоб можна було дійти до потрібної сторінки); вікно закривається. Esc / «Cancel» у Studio / тайм-аут сесії (5 хв) — скасування | D19: Inspector у власному вікні; Ctrl — щоб не плутати навігацію із захопленням |
+| 2 | Які стратегії | у порядку стійкості: `role` + доступна назва (aria-label, `<label>`, текст кнопки / посилання), `css` (`#id`, `[data-testid]`, `[name]`, інакше короткий шлях із `:nth-of-type`), `text` (видимий текст до 80 символів, для кнопок / посилань); кожна перевіряється в Assistant на **однозначність** (рівно один збіг) — неоднозначні відкидаються; жодної — помилка «element not unique» | D7: кілька способів; стійкі першими |
+| 3 | Знімок (D7a) | `snapshot: { url, title, tag, attributes (без value полів пароля), text (≤200), outer_html (≤2000, без value), rect, captured_at, provider: "web-cdp" }`; зображення — не в MVP | знімок для перезахоплення, не для пошуку; пароль не потрапляє |
+| 4 | Адреса | `url` — `http(s)://` або порожньо (`about:blank`); перевіряє оркестратор | не відкривати `file://` / `javascript:` з Studio |
+| 5 | Studio-front | «Capture element»: вибір «Window (desktop)» / «Web page» + поле адреси (пам'ятається остання); бібліотека елементів показує вид і стратегії людською мовою (`button «Sign in»`, `#login`, `text «Sign in»`); у формі кроку вибір елемента — лише відповідного виду (веб-крок — веб-елементи) | 12-screens |
+| 6 | Таблиця / список | **Ctrl + Shift + клік** — захоплюється найближча таблиця / список, а не клітинка (для `ExtractTable`) | додано під час реалізації: Ctrl + клік по таблиці майже завжди влучає в клітинку |
+
+## Задачі 10B
+
+| ID | Що | Де |
+|----|----|----|
+| **I1** ✅ | оркестратор: `url` у сесії й у `inspector/start`, перевірка адреси | Orchester |
+| **I2** ✅ | Assistant: веб-Inspector на Playwright (підсвітка, Ctrl + клік, стратегії з перевіркою однозначності, знімок), 1.7.0 | Desktop |
+| **I3** ✅ | Studio-front: захоплення веб-елемента, вигляд веб-елементів, фільтр за видом у формі кроку | Studio-front |
+| **I4** ✅ | живий прогін: захоплення на тестовій сторінці → крок → TEST-запуск | усі |
+
+Як зроблено (10B):
+
+- **Оркестратор** — `url` у `InspectorSessionRequestSchema` (лише `http(s)://`,
+  порожньо → `None`) і в `inspector/start`; перевірка можливості провайдера — як була.
+- **Assistant 1.7.0** — `PlaywrightInspector` за `WebInspector`: окремий Edge із
+  чистим профілем, підсвітка, Ctrl + клік / Ctrl + Shift + клік, стратегії перевіряються
+  тим самим пошуком, що й запуск; знімок без значень полів; iframe — помилка.
+- **Studio-front** — вибір «Window / Web page» з адресою, вид і стратегії людською
+  мовою в бібліотеці, фільтр елементів за видом у формі кроку.
+
+## Живий прогін 10B (2026-11-09)
+
+Робот RBT-31: `OpenBrowser` → `TypeText` → `Click «Sign in»` (елемента `sign_in` ще
+немає — перевірка: «unknown element 'sign_in'») → `GetText` → `Log` → `CloseBrowser`;
+у бібліотеці ще UIA-елемент `notepad_ok`. Studio-front у headless-браузері, «людина»
+у вікні Assistant — Ctrl + клік через Windows UI Automation.
+
+| Що | Результат |
+|----|-----------|
+| Адреса `javascript:alert(1)` | «Use an address starting with http:// or https://…», Start неактивний |
+| Захоплення | Assistant 1.7.0 відкрив Edge на `http://127.0.0.1:8765/`, Ctrl + клік по «Sign in» → у Studio «Captured»: `button «Sign in»`, `#login > button`, адреса сторінки; текстова стратегія відкинута як неоднозначна |
+| Add to scenario | `sign_in` у бібліотеці («Page · Sign in · 2 ways», крок s3), помилка перевірки зникла |
+| Форма кроку `Click (page)` | вибір елемента: `user`, `welcome`, `sign_in` — без `notepad_ok` (UIA) |
+| Run (TEST) | `COMPLETED` 6/6, «Welcome, Petro», `fallbacks_count` 0 |
+| Знімок | `url, title, tag, attributes, text, outer_html, rect, captured_at, provider`; `outer_html` — `<button type="submit">Sign in</button>` |
+| Після | процесів Edge, запущених Playwright, — 0 |
+
+Не перевірено: Chrome без Edge, збірка exe, захоплення таблиці (Ctrl + Shift + клік) наживо —
+лише в тестах `tests/web`.
