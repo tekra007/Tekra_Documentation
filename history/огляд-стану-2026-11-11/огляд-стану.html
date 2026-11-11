@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tekra: стан проєкту</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one reading column (~70ch) with a sticky contents rail on wide screens; sections follow the robot's path from idea to night run. */
+  :root {
+    --bg: #f6f6f9;
+    --surface: #ffffff;
+    --fg: #1b1b26;
+    --muted: #5c5c70;
+    --line: #e2e2ea;
+    --accent: #5b4ce0;
+    --accent-soft: #ecebfc;
+    --ok: #1f8a5b;
+    --ok-soft: #e3f4ec;
+    --warn: #a86400;
+    --warn-soft: #fbf0dd;
+    --pause: #6b6b80;
+    --pause-soft: #ececf2;
+    --font-display: "Manrope", "Segoe UI", system-ui, sans-serif;
+    --font-body: "Inter", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121219; --surface: #1b1b25; --fg: #ececf4; --muted: #a3a3b8; --line: #2c2c3a;
+      --accent: #9d93ff; --accent-soft: #26233f; --ok: #5fd39c; --ok-soft: #173327;
+      --warn: #f0b45a; --warn-soft: #3a2c14; --pause: #a8a8bd; --pause-soft: #262632;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121219; --surface: #1b1b25; --fg: #ececf4; --muted: #a3a3b8; --line: #2c2c3a;
+    --accent: #9d93ff; --accent-soft: #26233f; --ok: #5fd39c; --ok-soft: #173327;
+    --warn: #f0b45a; --warn-soft: #3a2c14; --pause: #a8a8bd; --pause-soft: #262632;
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg); color: var(--fg); font: 16px/1.65 var(--font-body);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding-block: 40px 80px; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px; }
+  nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 14px; }
+  nav.toc p { font: 600 12px/1 var(--font-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  nav.toc a { color: var(--muted); text-decoration: none; }
+  nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent); }
+  main { min-width: 0; max-width: 72ch; }
+  header.top { margin-bottom: 40px; }
+  .eyebrow { font: 600 12px/1 var(--font-body); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
+  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.2; }
+  h1 { font-size: clamp(30px, 5vw, 42px); font-weight: 800; margin: 0 0 16px; }
+  h2 { font-size: 26px; font-weight: 700; margin: 56px 0 14px; padding-top: 8px; scroll-margin-top: 24px; }
+  h3 { font-size: 18px; font-weight: 700; margin: 28px 0 8px; }
+  p { margin: 0 0 14px; }
+  .lead { font-size: 18px; color: var(--muted); }
+  .meta { font-size: 14px; color: var(--muted); }
+  strong { font-weight: 600; }
+  code, .mono { font-family: var(--font-mono); font-size: .88em; }
+  .term { background: var(--accent-soft); color: var(--accent); border-radius: 4px; padding: 0 5px; font-weight: 600; white-space: nowrap; }
+  ul.clean { margin: 0 0 14px; padding-left: 20px; }
+  ul.clean li { margin-bottom: 6px; }
+
+  .parts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 18px 0 8px; }
+  .part { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+  .part h3 { margin: 0 0 4px; font-size: 17px; }
+  .part .who { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+  .part p { font-size: 15px; margin: 0; }
+
+  .diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin: 18px 0; overflow-x: auto; }
+  pre.mermaid { margin: 0; text-align: center; background: transparent; }
+
+  ol.path { list-style: none; counter-reset: step; margin: 18px 0; padding: 0; display: grid; gap: 4px; }
+  ol.path > li { counter-increment: step; position: relative; padding: 0 0 18px 52px; border-left: 2px solid var(--line); margin-left: 17px; }
+  ol.path > li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  ol.path > li::before {
+    content: counter(step); position: absolute; left: -18px; top: -2px; width: 34px; height: 34px; border-radius: 50%;
+    background: var(--accent); color: var(--surface); font: 700 15px/34px var(--font-display); text-align: center;
+  }
+  ol.path h3 { margin: 2px 0 4px; font-size: 17px; }
+  ol.path p { margin: 0 0 6px; font-size: 15px; }
+  .where { font-size: 13px; color: var(--muted); }
+
+  .tbl { overflow-x: auto; margin: 16px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th { font: 600 12px/1.3 var(--font-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+  td:first-child { font-weight: 600; white-space: nowrap; }
+  .pill { display: inline-block; font: 600 12px/1 var(--font-body); padding: 5px 8px; border-radius: 999px; white-space: nowrap; }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.pause { background: var(--pause-soft); color: var(--pause); }
+
+  .note { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 18px 0; font-size: 15px; }
+  .note.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+
+  .glossary { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 18px; font-size: 15px; margin: 14px 0; }
+  .glossary dt { font-weight: 600; }
+  .glossary dd { margin: 0; color: var(--muted); }
+
+  footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media (max-width: 860px) {
+    .wrap { grid-template-columns: minmax(0, 1fr); gap: 0; padding-block: 24px 56px; }
+    nav.toc { position: static; margin-bottom: 28px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+    .parts { grid-template-columns: minmax(0, 1fr); }
+    td:first-child { white-space: normal; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>document.addEventListener('DOMContentLoaded',()=>mermaid.initialize({startOnLoad:true,theme:'neutral'}));</script>
+</head>
+<body>
+
+
+<div class="wrap">
+  <nav class="toc" aria-label="Зміст">
+    <p>Зміст</p>
+    <ol>
+      <li><a href="#what">1. Що таке Tekra</a></li>
+      <li><a href="#parts">2. Із чого складається</a></li>
+      <li><a href="#path">3. Як це працює</a></li>
+      <li><a href="#skills">4. Що вміє робот</a></li>
+      <li><a href="#dev">5. Інструменти розробника</a></li>
+      <li><a href="#control">6. Контроль і безпека</a></li>
+      <li><a href="#status">7. Що вже зроблено</a></li>
+      <li><a href="#gaps">8. Чого ще немає</a></li>
+      <li><a href="#next">9. Що далі</a></li>
+      <li><a href="#words">Словничок</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="top">
+      <p class="eyebrow">Огляд для команди · 11 листопада 2026</p>
+      <h1>Tekra: що вже є, як працює і що далі</h1>
+      <p class="lead">Простий опис платформи на сьогодні: від того, як людина робить робота, до того, як він сам працює вночі.</p>
+      <p class="meta">У тексті <strong>Assistant</strong> — це програма на комп'ютері користувача, яку ми між собою називаємо <strong>десктопкою</strong>. Тому пишемо «Assistant (десктопка)».</p>
+    </header>
+
+    <h2 id="what">1. Що таке Tekra</h2>
+    <p>Tekra — платформа для <strong>програмних роботів</strong> (RPA). Робот робить на комп'ютері ту саму рутину, що й людина: відкриває програми й сайти, заповнює поля, натискає кнопки, читає таблиці Excel, заповнює договори у Word, надсилає листи. Тільки швидше, без помилок і хоч уночі.</p>
+    <p>Типовий приклад: «взяти рахунки з Excel, для кожного внести дані в облікову систему, зробити акт у Word, зберегти в PDF і надіслати бухгалтерії». Людина один раз показує системі, як це робиться, а далі робот виконує сам за розкладом.</p>
+    <p>Важливо, що Tekra — не лише «робот, який клікає». Це повний цикл: зробити робота, перевірити, погодити, випустити в роботу, запускати за розкладом, стежити за його станом і бачити, хто що зробив.</p>
+
+    <h2 id="parts">2. Із чого складається</h2>
+    <p>Чотири частини, кожна для своєї ролі:</p>
+    <div class="parts">
+      <article class="part">
+        <h3>Studio</h3>
+        <p class="who">Для розробника роботів · у браузері</p>
+        <p>Тут роблять роботів: складають кроки, показують, де які кнопки й поля, перевіряють і запускають на тест. Тут же — повторно використовувані компоненти й бізнес-процеси.</p>
+      </article>
+      <article class="part">
+        <h3>Оркестратор</h3>
+        <p class="who">Сервер · «мозок» системи</p>
+        <p>Зберігає роботів і їхні версії, вирішує, хто, де і коли запускає робота, веде чергу, розклади, погодження, стан роботів і журнал подій.</p>
+      </article>
+      <article class="part">
+        <h3>Face (адмінка)</h3>
+        <p class="who">Для адміністратора · у браузері</p>
+        <p>Користувачі й ролі, машини, погодження переходу в робочий режим, розклади, стан роботів, політики, ліцензії, сповіщення.</p>
+      </article>
+      <article class="part">
+        <h3>Assistant (десктопка)</h3>
+        <p class="who">На комп'ютері користувача · Windows</p>
+        <p>Саме вона виконує роботів: керує вікнами програм, своїм браузером, Excel і Word. Показує розклад і журнал запусків. Зараз версія 1.9.0.</p>
+      </article>
+    </div>
+    <p>Вхід для всіх частин один, через <strong>Keycloak</strong>: один акаунт людини, членство в організації з роллю. Частини між собою обмінюються повідомленнями через <strong>RabbitMQ</strong>, а десктопка тримає з оркестратором постійне захищене з'єднання.</p>
+    <div class="diagram">
+      <pre class="mermaid">
+flowchart LR
+  DEV["Розробник"] --> STUDIO["Studio<br/>робимо роботів"]
+  ADMIN["Адміністратор"] --> FACE["Face<br/>адмінка"]
+  STUDIO -- "версії роботів" --> ORCH["Оркестратор<br/>черга, розклади, погодження"]
+  FACE --> ORCH
+  ORCH -- "завдання на запуск" --> DESK["Assistant (десктопка)<br/>на ПК користувача"]
+  DESK -- "лог і результат" --> ORCH
+  DESK --> APPS["Програми Windows, браузер,<br/>Excel, Word, PDF, пошта"]
+      </pre>
+    </div>
+
+    <h2 id="path">3. Як це працює: шлях робота від ідеї до нічного запуску</h2>
+    <p>Ось як усе відбувається по порядку. Ми показували це на демо «з нуля».</p>
+    <ol class="path">
+      <li>
+        <h3>Адмін підключає людей і десктопку</h3>
+        <p>Адміністратор у Face запрошує людину й дає їй роль: адмін, розробник або користувач. Потім надсилає <strong>одноразове посилання для підключення</strong>. Людина відкриває його, вставляє в Assistant (десктопку), підтверджує й входить. Логіна й пароля в самій десктопці немає, вхід іде через браузер.</p>
+        <p class="where">Після цього в системі видно: <span class="mono">MACHINE-1 · ASSISTANT-1</span> — яка машина і яка десктопка на ній.</p>
+      </li>
+      <li>
+        <h3>Розробник складає робота в Studio</h3>
+        <p>Робот — це список кроків: «відкрити сайт», «ввести логін», «натиснути "Увійти"», «прочитати таблицю», «для кожного рядка…». Кроки беруться з каталогу, і для кожного форма будується сама: які поля обов'язкові, яких типів. Є змінні, умови, цикли й обробка помилок.</p>
+      </li>
+      <li>
+        <h3>Розробник показує роботу елементи</h3>
+        <p>Щоб робот знав, куди клікати, використовують <strong>Inspector</strong>. Наводиш на кнопку у вікні програми або на сторінці й натискаєш Ctrl, і система запам'ятовує <strong>кілька способів знайти цей елемент</strong>: за назвою, за роллю, за технічною адресою. Якщо програма зміниться і перший спосіб не спрацює, робот спробує наступний і позначить, що елемент варто перезахопити.</p>
+      </li>
+      <li>
+        <h3>Studio перевіряє сценарій</h3>
+        <p>Ще до запуску видно помилки: змінна використовується до того, як отримала значення; не той вид елемента для кроку; відносний шлях до файлу; неправильна адреса клітинки Excel чи e-mail. Також видно, яку мінімальну версію десктопки потребує робот.</p>
+      </li>
+      <li>
+        <h3>Тестовий запуск на своїй десктопці</h3>
+        <p>Розробник натискає <strong>Run</strong>, і робот виконується на його ж машині. У Studio наживо видно лог по кроках. Можна поставити точки зупинки: робот стане на паузу, покаже змінні й чекатиме «Продовжити». Можна запустити «до цього кроку» або лише виділені кроки.</p>
+      </li>
+      <li>
+        <h3>Збереження версії й погодження</h3>
+        <p>Кожне збереження — це <strong>версія</strong> робота (наприклад, 184.2). Щоб робот пішов «у бій» (PROD), розробник подає версію на погодження. Погоджує <strong>інша людина</strong>, а не той, хто подав. За правилами організації може бути ще <strong>тестовий період</strong>. Після погодження версія стає активною. Якщо щось пішло не так, можна відкликати її або повернути попередню.</p>
+      </li>
+      <li>
+        <h3>Розклад і робота без людини</h3>
+        <p>У робота можуть бути <strong>тригери</strong>: наприклад, «щобудня о 02:00 на машині MACHINE-1». Оркестратор сам ставить запуск у чергу й віддає його десктопці. Звичайний користувач може запускати робочих роботів, до яких йому дали доступ.</p>
+      </li>
+      <li>
+        <h3>Стеження і контроль</h3>
+        <p>Для кожного робота видно <strong>здоров'я</strong> (за останніми робочими запусками), <strong>доступність</strong> (увімкнений, призупинений, вимкнений), лог кожного запуску, скільки разів довелося шукати елемент резервним способом. Кожна важлива дія записується в журнал, адміністратори отримують сповіщення.</p>
+      </li>
+    </ol>
+
+    <h2 id="skills">4. Що вміє робот</h2>
+    <p>Можливості згруповані за тим, з чим робот працює. Кожна група — окремий «провайдер», і десктопка повідомляє оркестратору, які з них є на машині. Наприклад, Word є не всюди, тож роботу з Word не дадуть машині, де його немає.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>З чим</th><th>Що робить</th><th>Стан</th></tr></thead>
+        <tbody>
+          <tr><td>Програми Windows</td><td>Знайти вікно, клікнути, ввести текст, прочитати текст, вибрати в списку, дочекатися елемента, натиснути гарячі клавіші</td><td><span class="pill ok">працює</span></td></tr>
+          <tr><td>Вебсторінки</td><td>Власний браузер робота (системний Edge, чистий профіль, а не браузер людини): відкрити сторінку, ввести, клікнути, вибрати, прочитати текст і таблиці. Браузер завжди закривається після запуску</td><td><span class="pill ok">працює</span></td></tr>
+          <tr><td>Excel</td><td>Через справжній Excel, у прихованому окремому екземплярі: читає все, що відкриває Excel (xlsx, xls, xlsb, csv, ods, книги з паролем), пише клітинки й діапазони, дописує рядки, аркуші, формули, макроси, зберігає в інших форматах і в PDF</td><td><span class="pill ok">працює</span></td></tr>
+          <tr><td>Word</td><td>Заповнює шаблони: <span class="mono">{{контрагент}}</span> → значення, зокрема в колонтитулах і таблицях; замінює текст, читає текст і таблиці, зберігає в docx, PDF, rtf та інших</td><td><span class="pill ok">працює</span></td></tr>
+          <tr><td>PDF</td><td>Читає текст і таблиці, інформацію про файл, зливає файли, витягує сторінки. Скани (картинки) поки не розпізнає</td><td><span class="pill ok">працює</span></td></tr>
+          <tr><td>Пошта напряму</td><td>Надсилає листи з вкладеннями через поштовий сервер, читає скриньку з фільтрами, позначає прочитаними, зберігає вкладення. Outlook не потрібен</td><td><span class="pill ok">працює</span></td></tr>
+          <tr><td>Outlook</td><td>Те саме через Outlook людини: надіслати лист, прочитати папку, зберегти вкладення</td><td><span class="pill warn">не перевірено наживо</span></td></tr>
+          <tr><td>Логіка</td><td>Змінні, умови, цикли, обробка помилок, паузи, журнал, параметри запуску</td><td><span class="pill ok">працює</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">На демо один робот за 27 секунд прочитав рахунки з Excel, зробив три акти з шаблону Word, зібрав їх в один PDF, надіслав листом, прочитав лист у скриньці бухгалтерії і зберіг вкладення.</div>
+
+    <h2 id="dev">5. Інструменти розробника в Studio</h2>
+    <ul class="clean">
+      <li><strong>Редактор кроків</strong> — дерево кроків із блоками (умови, цикли, обробка помилок), форма для кожного кроку й вкладка «JSON» для просунутих.</li>
+      <li><strong>Бібліотека елементів</strong> — усі захоплені кнопки й поля робота: де використовуються, якими способами шукаються, знімок для перезахоплення.</li>
+      <li><strong>Inspector</strong> — для вікон Windows і для вебсторінок. Для сторінок десктопка відкриває окреме вікно браузера, людина там ходить, за потреби входить сама, і робить Ctrl+клік по потрібному елементу.</li>
+      <li><strong>Компоненти</strong> — готові шматки сценарію (наприклад, «вхід у CRM»), які вставляються в різних роботів.</li>
+      <li><strong>Бізнес-процеси</strong> — схема процесу в BPMN: які кроки робить людина, які робот і система. Видно здоров'я процесу за роботами в ньому.</li>
+      <li><strong>Налагодження</strong> — точки зупинки, пауза з переглядом змінних, «запустити до кроку», «запустити виділене».</li>
+      <li><strong>Облікові дані</strong> — логіни й паролі для роботів зберігаються в системі зашифрованими, у логах маскуються. Один обліковий запис не використовується двома запусками одночасно.</li>
+    </ul>
+
+    <h2 id="control">6. Контроль і безпека</h2>
+    <ul class="clean">
+      <li><strong>Вхід</strong> через Keycloak. Підтримуються двофакторний вхід і одна політика паролів.</li>
+      <li><strong>Ролі:</strong> адміністратор, розробник, користувач. Користувач бачить і запускає лише тих робочих роботів, до яких йому дали доступ.</li>
+      <li><strong>Ізоляція організацій</strong> на рівні бази даних: одна організація фізично не бачить дані іншої.</li>
+      <li><strong>Шифрування секретів:</strong> ключ на кожну організацію; паролі не віддаються через API.</li>
+      <li><strong>Погодження</strong> переходу в PROD — лише іншою людиною, за політиками організації.</li>
+      <li><strong>Журнал подій:</strong> хто подав, хто погодив, хто запустив, що змінилося.</li>
+      <li><strong>Робот не чіпає речі людини:</strong> у нього свій браузер, свій прихований Excel і Word, і все це закривається після кожного запуску.</li>
+      <li><strong>Черга:</strong> на одній машині одночасно йде один запуск; робочі (PROD) запуски — першими.</li>
+    </ul>
+
+    <h2 id="status">7. Що вже зроблено (за фазами плану)</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Фаза</th><th>Що це</th><th>Стан</th></tr></thead>
+        <tbody>
+          <tr><td>0. Фундамент</td><td>Studio (фронт і бек), обмін повідомленнями, єдиний вхід, ізоляція й шифрування, журнал подій</td><td><span class="pill ok">готово</span></td></tr>
+          <tr><td>1. Тонка нитка</td><td>Перший наскрізний шлях: зробили робота → версія → запуск на десктопці → результат</td><td><span class="pill ok">готово</span></td></tr>
+          <tr><td>2. Виконавець</td><td>Десктопка виконує сценарії: змінні, умови, цикли, помилки, програми Windows</td><td><span class="pill ok">готово</span></td></tr>
+          <tr><td>3. Inspector</td><td>Захоплення елементів вікон, бібліотека елементів</td><td><span class="pill ok">готово</span></td></tr>
+          <tr><td>4. Редактор Studio</td><td>Каталог дій, форми, перевірка сценарію, облікові дані</td><td><span class="pill ok">готово</span></td></tr>
+          <tr><td>5. Виконання</td><td>Черга на машину, перевірки перед запуском, живі логи, скасування, втрата зв'язку</td><td><span class="pill ok">готово</span></td></tr>
+          <tr><td>6. Шлях у PROD</td><td>Версії, погодження, тестові періоди, активна версія, відкат, стан і здоров'я, архів, доступи</td><td><span class="pill ok">готово</span></td></tr>
+          <tr><td>7. Розклад</td><td>Тригери у версії робота, автоматичні запуски</td><td><span class="pill ok">готово</span></td></tr>
+          <tr><td>8. Компоненти, процеси, налагодження</td><td>Повторно використовувані шматки, BPMN, точки зупинки</td><td><span class="pill ok">готово</span></td></tr>
+          <tr><td>9. Excel</td><td>Робота зі справжнім Excel</td><td><span class="pill ok">готово</span></td></tr>
+          <tr><td>9B. Word, пошта, PDF</td><td>Шаблони Word, пошта напряму й через Outlook, PDF</td><td><span class="pill ok">готово</span></td></tr>
+          <tr><td>10. Вебсторінки</td><td>Власний браузер робота і Inspector для сторінок</td><td><span class="pill ok">готово</span></td></tr>
+          <tr><td>11. 1С / BAS</td><td>Робота з обліковими системами</td><td><span class="pill pause">на паузі</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Кожен етап закривався <strong>живим прогоном</strong>: справжній робот на справжній десктопці, а не лише автотести. Плюс автотести в кожній частині. Наприклад, у десктопці їх понад 440, окремо — тести зі справжнім Excel, Word, браузером і поштовим сервером.</p>
+
+    <h2 id="gaps">8. Чого ще немає (чесно)</h2>
+    <ul class="clean">
+      <li><strong>Outlook не перевірений наживо:</strong> на машині розробки немає поштової скриньки в Outlook. Пошта напряму (без Outlook) перевірена.</li>
+      <li><strong>Дашборд Face поки на даних з макета</strong> (вигадані цифри й імена). Справжній стан роботів — на сторінці «Robots».</li>
+      <li><strong>Скани PDF</strong> (картинки без тексту) не розпізнаються, робот лише попереджає про це.</li>
+      <li><strong>Інсталятор десктопки</strong> з новими можливостями (браузер, Office, PDF) ще не зібраний і не перевірений.</li>
+      <li><strong>Повністю автономна робота на віртуальних машинах</strong> (без людини, що увійшла в Windows) — ще не зроблена.</li>
+      <li>На робочих машинах <strong>Office має бути активований</strong>. На неактивованому може блимати вікно «Введіть ключ продукту»; робот його закриває, але це некрасиво.</li>
+    </ul>
+
+    <h2 id="next">9. Що далі</h2>
+    <h3>Найближче</h3>
+    <ul class="clean">
+      <li><strong>1С / BAS (фаза 11)</strong> — зараз на паузі. Перед стартом окремо обговорюємо: спершу розвідка на демобазі BAS Бухгалтерія — наскільки добре десктопка бачить вікна 1С, чи зручніше через веб-клієнт, чи потрібен прямий доступ через API без інтерфейсу.</li>
+      <li><strong>Outlook наживо</strong> — щойно буде тестова скринька.</li>
+      <li><strong>Підготовка до релізу:</strong> зібрати й перевірити інсталятор десктопки на чистій машині, звести міграції бази в одну початкову, оновити фреймворк фронтендів (зараз є попередження безпеки в залежностях), справжній дашборд у Face.</li>
+    </ul>
+    <h3>Після першої версії</h3>
+    <ul class="clean">
+      <li>Повністю автономні запуски на віртуальних машинах.</li>
+      <li>Розумніша черга: блокування файлів і ліцензій, резервування часу, витіснення менш важливих запусків.</li>
+      <li>Кілька десктопок на одній машині, тарифи й ліміти, маркетплейс роботів, перехід з безкоштовного плану на платний.</li>
+      <li>Розпізнавання сканів (OCR).</li>
+    </ul>
+    <h3>Ідея на обговорення</h3>
+    <p>«AI у Tekra»: штучний інтелект допомагає <strong>будувати й лагодити</strong> роботів, робот <strong>виконує</strong>, людина <strong>погоджує</strong>. Поки відкладено, повернемося після основних фаз.</p>
+
+    <h2 id="words">Словничок</h2>
+    <dl class="glossary">
+      <dt>Робот</dt><dd>Записаний сценарій дій на комп'ютері, який виконується автоматично.</dd>
+      <dt>Assistant (десктопка)</dt><dd>Програма на Windows-машині, яка виконує роботів.</dd>
+      <dt>Studio</dt><dd>Вебредактор, де роблять і тестують роботів.</dd>
+      <dt>Face</dt><dd>Адмінка оркестратора: люди, машини, погодження, розклади.</dd>
+      <dt>Оркестратор</dt><dd>Сервер, що зберігає роботів і вирішує, де й коли їх запускати.</dd>
+      <dt>TEST / PROD</dt><dd>Тестовий запуск (перевірка розробником) і робочий запуск (погоджена версія).</dd>
+      <dt>Версія</dt><dd>Збережений знімок робота, наприклад 184.2. У PROD працює одна активна версія.</dd>
+      <dt>Елемент</dt><dd>Кнопка, поле, таблиця у вікні чи на сторінці, з якими працює робот.</dd>
+      <dt>Inspector</dt><dd>Інструмент, яким показують роботу елементи.</dd>
+      <dt>Тригер</dt><dd>Правило автоматичного запуску, наприклад «щобудня о 02:00».</dd>
+      <dt>Здоров'я робота</dt><dd>Оцінка за останніми робочими запусками: чи працює він стабільно.</dd>
+    </dl>
+
+    <footer>Складено за станом коду й документації проєкту на 11 листопада 2026. Деталі — у <span class="mono">Tekra_Documentation/studio/</span> (план — <span class="mono">10-roadmap.md</span>).</footer>
+  </main>
+</div>
+
+</body>
+</html>

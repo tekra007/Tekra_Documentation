@@ -35,6 +35,7 @@
 | Розділ | Про що |
 |--------|--------|
 | [`studio/`](studio/README.md) | **Tekra Studio** — веб-редактор роботів, Inspector, виконання. Канон — [ТЗ](studio/spec/tz-lifecycle.md); рішення D1–D33 |
+| [`history/`](history/README.md) | Проміжні огляди стану на дату (`назва-дата`, кожен у HTML / PDF / DOCX / MD) — історія проєкту |
 
 ## Правила для цього репозиторію
 
